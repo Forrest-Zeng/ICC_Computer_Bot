@@ -6,7 +6,7 @@ from discord_slash.utils.manage_components import create_button, create_actionro
 from discord_slash.model import ButtonStyle, SlashCommandPermissionType
 from random import choice
 from urllib.parse import quote_plus
-import requests, schedule, asyncio, datetime, ship_parser, io, re
+import requests, schedule, asyncio, datetime, ship_parser, io, re #, shutil, cv2, pytesseract
 
 
 bot = Client(Intents=Intents.default())
@@ -207,7 +207,7 @@ async def prelude_button(ctx: ComponentContext):
       "https://cdn.discordapp.com/attachments/838805399162716190/848328589777961021/-OEoGmagOx9osKooCw0udJyiqHmvwJxcQO-RVuhqViBxOI_orIDHMjubmlQDaxc68eL39Zt81iG_vu9BXkFKrVww6R9U58kVy-tc.png",
       "https://cdn.discordapp.com/attachments/838805399162716190/848328665137938452/9RUxmLUV_OMKR5cdAgWGHoE3fuGnAagqiL9H52hOXtGFe19B65-vUAiR9om5sve4jmTt3ybX0mQ1UmUHVcjR5BfKpHqTMeL5y2tw.png",
   ]
-  e = Embed(title="Prelude", colour=Colour.orange())
+  e = Embed(title="Prelude", colour=Colour.orange(), footer=f"Requested by {ctx.origin_message.author.name}")
   e.set_image(url=choice(preludes))
   await ctx.send(
       embed=e,
@@ -380,14 +380,14 @@ async def on_component(ctx: ComponentContext):
     embed = remove_vote("Downvoters", "- " + ctx.author.mention, embed)
     index = list(map(lambda field: field["name"].startswith("Upvoters"), embed["fields"])).index(True)
 
-    embed["fields"][index]["name"] = "Upvoters " + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")"
-
     if ctx.author.mention in embed["fields"][index]["value"]:
       return
     if embed["fields"][index]["value"] == "No data yet.":
       embed["fields"][index]["value"] = "- " + ctx.author.mention
     else:
       embed["fields"][index]["value"] += "\n- " + ctx.author.mention
+
+    embed["fields"][index]["name"] = "Upvoters " + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")"
 
     await ctx.edit_origin(embed=Embed.from_dict(embed))
   elif ctx.custom_id == "downvote":
@@ -397,14 +397,15 @@ async def on_component(ctx: ComponentContext):
     embed = remove_vote("Upvoters", "- " + ctx.author.mention, embed)
     index = list(map(lambda field: field["name"].startswith("Downvoters"), embed["fields"])).index(True)
 
-    embed["fields"][index]["name"] = "Downvoters " + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")"
-
     if ctx.author.mention in embed["fields"][index]["value"]:
       return
     if embed["fields"][index]["value"] == "No data yet.":
       embed["fields"][index]["value"] = "- " + ctx.author.mention
     else:
       embed["fields"][index]["value"] += "\n- " + ctx.author.mention
+
+    embed["fields"][index]["name"] = "Downvoters " + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")"
+
     await ctx.edit_origin(embed=Embed.from_dict(embed))
   elif ctx.custom_id == "clearvote":
     message = ctx.origin_message
@@ -417,6 +418,11 @@ async def on_component(ctx: ComponentContext):
   elif ctx.custom_id == "accept_application":
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
+
+    if embed["fields"][list(map(lambda field: field["name"] == "Verified", embed["fields"])).index(True)]["value"] == "Yes":
+      message = await ctx.send(ctx.author.mention + " tried to accept a member but failed to realize that the member was *already accepted*!")
+      await message.add_reaction("👏")
+      return
 
     firstname = embed["fields"][list(map(lambda field: field["name"] == "First Name", embed["fields"])).index(True)]["value"]
     lastname = embed["fields"][list(map(lambda field: field["name"] == "Last Name", embed["fields"])).index(True)]["value"]
@@ -1233,6 +1239,37 @@ async def on_message_delete(message):
   snipes[message.channel.id].add(await SnipedMessage.create(created_at=message.created_at, deleted_at=datetime.datetime.now(), author=message.author, deleter=deleter, content=message.content, embeds=message.embeds, attachments=message.attachments))
 
 
+@bot.event
+async def on_message(message):
+  return
+  if message.author.guild_permissions.administrator and message.author.id != 738900809810575390: # admin
+    return
+
+  if profane(message.content): # also check like embeds and stuff
+    await message.delete()
+    return
+
+
+  # to_check = []
+  # for attachment in message.attachments:
+  #   stuff = io.BytesIO(await attachment.read())
+  #   stuff.seek(0)
+  #   with open("attachment_cache/" + attachment.filename, "wb") as f:
+  #     shutil.copyfileobj(stuff, f, length=131072)
+  #   to_check.append("attachment_cache/" + attachment.filename)
+  #   for image in to_check:
+  #     img = cv2.imread(image)
+  #     if profane(pytesseract.image_to_string(img)): 
+  #       await message.delete()
+  #       message.channel.send(message.author.mention + " has sent a profane message.")
+  #       return
+
+
+
+  
+    
+
+
 url_test = re.compile("^https?:\/\/docs\.google\.com\/document\/d\/[0-9a-zA-Z-]+\/edit(\?usp=sharing)?(#.*)?$")
 @slash.slash(
     name="event",
@@ -1349,7 +1386,6 @@ async def on_reaction_remove(reaction, member):
   embed.add_field(name="Emoji", value=str(reaction))
   await channel.send(embed=embed)
 
-
 pages = ["**0. Introduction**\n\nPlease read the entirety of these Terms and Conditions thoroughly because it explains your rights and responsibilities while accessing the Irvine Coding Club Discord server. By accepting these Terms, **you agree to be bound by these Terms and held accountable for violating these terms**. The Irvine Coding Club may take measures to prevent future violations of the Terms by kicking or banning any member at any time. The Irvine Coding Club reserves the right to update these terms at any time.", "**1. Acceptable Use**\n\nTo:\n- Engage or promote anything illegal or otherwise violate applicable law, Threaten, harass, or violate the privacy rights of others, Harm users with malicious code or instructions, in attacks not limited to, viruses, malware, or trojan horses, Deceive, mislead, defraud, phish, or attempt to commit identity theft, Violate the privacy rights of others, Collect or harvest personally identifiable information without permission which includes, but is not limited to, account names and email addresses, Engage in any activity that interferes with or disrupts the services provided.\n- Engage or promote anything illegal or otherwise violate applicable law,\n- Threaten, harass, or violate the privacy rights of others,\n- Harm users with malicious code or instructions, in attacks not limited to, viruses, malware, or trojan horses,\n- Deceive, mislead, defraud, phish, or attempt to commit identity theft,\n- Violate the privacy rights of others,\n- Collect or harvest personally identifiable information without permission which includes, but is not limited to, account names and email addresses,\n- Engage in any activity that interferes with or disrupts the services provided.\n\nis prohibited on the Irvine Coding Club Discord server.\n\n**Note:** this is not an exhaustive list and any moderator may choose to add any rule whenever. You will still be required to follow any new updated rules.", "**2. Server Rules**\n\n1) Be respectful.  This is self explanatory. Don't be rude. This includes any discrimination of any kind -- including about coding skills. Avoid spam and all caps without reason, and try to be respectful. Please keep profanity to a minimum.\n2) Please use /verify and enter your real name and school when you join.\n3) Have fun!  It's a club! Code! Talk! Make friends! Collaborate!"]
 
 @slash.slash(
@@ -1417,6 +1453,56 @@ async def TOC_accept(ctx: ComponentContext):
   # accept TOC
 
   # perhaps include the ID of the message (from the icc-logs) in this component thing and move it way up
+
+
+@slash.slash(
+    name="form",
+    description="Create a form for the council to fill out.",
+    guild_ids=test_guilds,
+    options=[
+        create_option(
+            name="link",
+            description="Form link",
+            option_type=3,
+            required=True,
+        )
+    ],
+    permissions={
+      800120401107746846: [
+        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
+        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
+        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
+      ]
+    }
+)
+async def form(ctx: SlashContext, link):
+  if not ctx.author.guild_permissions.administrator:
+    await ctx.send("You must be an admin to create forms!",
+                  hidden=True)
+    return
+  
+  channel = None
+  for _channel in ctx.guild.channels:
+    if _channel.name == "council-alerts":
+      channel = _channel
+      break
+  if channel == None:
+    await ctx.send(
+        "Must be a channel named council-alerts in the server you are using this command! Please contact an admin if you believe this is a mistake!",
+        hidden=True)
+    return
+  
+  # send embed (description = 
+  """
+  Fill out [this form](" + link + ").\n\nIf you do not fill out this form, or lie and say that you have filled out this form without having actually having succeeded in your duty, punishments will be required. By reading this message, you agree to these terms. 
+  """
+  #)
+  # ping everyone
+  # add them to people who have finished once they press button
+  # ping person who created, once everyone has filled out
+  # (do this by doing a list of people who still need to be filled out, kind of like people who up voted then downvoted, the upvoted is still need to be filled out)
+  # can't say you have not finished once you have already pressed button
+
 
 
 # @slash.slash(
