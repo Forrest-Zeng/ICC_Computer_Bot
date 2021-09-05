@@ -6,6 +6,9 @@ from discord_slash.utils.manage_components import create_button, create_actionro
 from discord_slash.model import ButtonStyle, SlashCommandPermissionType
 from random import choice
 from urllib.parse import quote_plus
+from itertools import chain
+from gevent.pywsgi import WSGIServer
+from flask import Flask, jsonify
 import requests, schedule, asyncio, datetime, ship_parser, io, re #, shutil, cv2, pytesseract
 
 
@@ -14,25 +17,39 @@ slash = SlashCommand(bot, sync_commands=True)
 guilds = [800120401107746846]
 test_guilds = [842931029701427251]
 
+async def get_members(): # get members from channel
+  channel = (await bot.fetch_channel(867913713301192705)).name
+  return int(channel[10:])
+
+def _cors(response):
+  response.headers["Access-Control-Allow-Origin"] = "*"
+  return response
+
+members = 0
+
 @bot.event
 async def on_ready():
   print("Bot Ready!")
-  # setting a custom status (https://github.com/discord/discord-api-docs/issues/1160)
-  # asset = (await bot.fetch_guild(800120401107746846)).icon_url
-  # activity = Activity(details="Watching over the ICC!", state="Watching over the ICC!", name="Watching over the ICC!", assets={"large_image": asset, "small_image": asset, "large_text": "Watching over the ICC in all it's glory.", "small_text": "Watching over the Irvine Coding Club (as a moderation bot, fun bot, and all around great bot."}, large_image_url="https://irvinecoding.club/assets/images/favicon.png", small_image_url="https://irvinecoding.club/assets/images/favicon.png", large_image_text="Watching over the ICC in all it's glory.", small_image_text="Watching over the Irvine Coding Club (as a moderation bot, fun bot, and all around great bot.", start=datetime.datetime(2021, 1, 16, hour=21, minute=52, second=49, microsecond=142), emoji=str(bot.get_emoji(847338149238800394)))
+
+  global members
+  members = await get_members() # start off with number of members
+  app = Flask("server") # identification for application
+  @app.route("/")
+  def index():
+    return "Official ICC Bot!"
+  @app.route("/api/members")
+  def members():
+    return _cors(jsonify({
+      "members": members
+    })) # return members, and allow CORS
+  WSGIServer(('', 5000), app).serve_forever()
 
   await bot.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="over the ICC!"))
 
-#   channel = await bot.fetch_channel(867982690031394827)
-#   message = await channel.fetch_message(881900546590662696)
-#   embed = message.embeds[0].to_dict()
-#   index = list(map(lambda field: field["name"] == "Attendees", embed["fields"])).index(True)
-#   embed["fields"][index]["value"] = '''- <@!521575534011088916>
-# - <@!769007255700897822>
-# - <@!745408105503785010>
-# - <@!738900809810575390>
-# - <@!451588543618220042>'''
-#   await message.edit(embed=Embed.from_dict(embed))
+async def on_guild_channel_update(_before, after):
+  if after.id == 867913713301192705: # check if it is the Verified channel in the correct server
+    global members
+    members = int(after.name[10:])
 
 
 @bot.event
@@ -326,6 +343,16 @@ async def on_component(ctx: ComponentContext):
       return
     await message.delete()
     await ctx.edit_origin(content="Poll removed.")
+  elif ctx.custom_id.startswith("poll_remove-"):
+    try:
+      message = await (await
+                       bot.fetch_channel(854923814710018069)).fetch_message(
+                           int(ctx.custom_id[12:])) # channel id should be 854923814710018069
+    except:
+      await ctx.edit_origin(content="Form already removed.")
+      return
+    await message.delete()
+    await ctx.edit_origin(content="Form removed.")
   elif ctx.custom_id.startswith("stop_spam-"):
     jobs = schedule.get_jobs(ctx.custom_id[10:])
     if len(jobs) == 0:
@@ -353,7 +380,6 @@ async def on_component(ctx: ComponentContext):
       return
     await message.delete()
     await ctx.edit_origin(content="Event removed.")
-
   elif ctx.custom_id == "event_rsvp":
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
@@ -453,6 +479,31 @@ async def on_component(ctx: ComponentContext):
 
     embed["fields"][list(map(lambda field: field["name"] == "Verified", embed["fields"])).index(True)]["value"] = "Denied (can always accept again, but go through approval from a president or vice president)"
 
+    await ctx.edit_origin(embed=Embed.from_dict(embed))
+  elif ctx.custom_id == "completed_form":
+    message = ctx.origin_message
+    embed = message.embeds[0].to_dict()
+
+    completed_index = list(map(lambda field: field["name"] == "Completed", embed["fields"])).index(True)
+    if ctx.author.mention in embed["fields"][completed_index]["value"]:
+      await ctx.send("Apparently " + ctx.author.mention + " tried to complete the form twice! (and did not succeed)")
+      return
+
+    index = list(map(lambda field: field["name"] == "Uncompleted", embed["fields"])).index(True)
+    if embed["fields"][index]["value"] == "@everyone":
+      embed["fields"][completed_index]["value"] = "- " + ctx.author.mention
+      people = list(chain.from_iterable([role.members for role in await ctx.guild.fetch_roles() if role.permissions.administrator]))
+      
+      embed["fields"][index]["value"] = "\n".join(["- " + member.mention for member in people])
+    else:
+      embed["fields"][index]["value"] = "\n".join(list(filter(lambda e: ctx.author.mention not in e, embed["fields"][index]["value"].split("\n"))))
+      if embed["fields"][index]["value"] == "":
+        embed["fields"][index]["value"] = "No one?"
+        embed["fields"][completed_index]["value"] = "Everyone?"
+        await ctx.edit_origin(embed=Embed.from_dict(embed))
+        initiator = await bot.fetch_user(int(message.content.split("<@!")[-1].split("<@")[-1].split(">")[0]))
+        await ctx.message.reply(content=initiator.mention + " Form has finally been finished!")
+      embed["fields"][completed_index]["value"] += "\n- " + ctx.author.mention
     await ctx.edit_origin(embed=Embed.from_dict(embed))
   else:
     pass  # do stuff
@@ -1498,10 +1549,32 @@ async def form(ctx: SlashContext, link):
         hidden=True)
     return
   
-  # send embed (description = 
-  """
-  Fill out [this form](" + link + ").\n\nIf you do not fill out this form, or lie and say that you have filled out this form without having actually having succeeded in your duty, punishments will be required. By reading this message, you agree to these terms. 
-  """
+  e = Embed(
+    title="New Form Yay!",
+    description="Fill out [this form](" + link + ").\n\nIf you do not fill out this form, or lie and say that you have filled out this form without having actually having succeeded in your duty, punishments will be required. By reading this message, you agree to these terms. If you are except from completing this form, simply click the \"Completed\" button and be free from any worries plaguing your nightmares. *But if you are not exempt and have **not** filled out the form, beware what lies ahead of you."
+  )
+
+  e.add_field(name="Link", value=link + " (since you can't find it from above)")
+
+  e.add_field(name="Completed", value="No one :00000")
+  e.add_field(name="Uncompleted", value="@everyone")
+  
+  message = await channel.send(content="@everyone. Form requested by " + ctx.author.mention, embed=e, components=[
+          create_actionrow(
+              create_button(style=ButtonStyle(3),
+                            label="Completed",
+                            custom_id="completed_form"))
+  ])
+
+  await ctx.send(embed=Embed(title="Success!", description="Your form has been sent!"), 
+      components=[
+          create_actionrow(
+              create_button(style=ButtonStyle(4),
+                            label="Remove Form",
+                            custom_id="form_remove-" + str(message.id)))
+      ],
+  hidden=True)
+
   #)
   # ping everyone
   # add them to people who have finished once they press button
