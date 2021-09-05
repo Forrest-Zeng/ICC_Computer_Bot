@@ -211,6 +211,7 @@ async def prelude_button(ctx: ComponentContext):
   e.set_image(url=choice(preludes))
   await ctx.send(
       embed=e,
+      content="<@" + ctx.author_id + ">",
       components=[
           create_actionrow(
               create_button(
@@ -276,6 +277,7 @@ async def snowflake_button(ctx: ComponentContext):
   e.set_image(url=choice(snowflakes))
   await ctx.send(
       embed=e,
+      content="<@" + ctx.author_id + ">",
       components=[
           create_actionrow(
               create_button(
