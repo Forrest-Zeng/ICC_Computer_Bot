@@ -273,7 +273,10 @@ async def snowflake_button(ctx: ComponentContext):
       "https://cdn.discordapp.com/attachments/841542812104917014/879038803313061898/Screen_Shot_2021-08-22_at_9.24.42_AM.png",
       "https://cdn.discordapp.com/attachments/841542812104917014/879038803958960128/Screen_Shot_2021-08-22_at_9.24.56_AM.png"
   ]
-  e = Embed(title="Snowflake", colour=Colour(0x82bbbe), description=f"Requested by {ctx.author.mention}"
+  e = Embed(
+    title="Snowflake", 
+    colour=Colour(0x82bbbe), 
+    description=f"Requested by {ctx.author.mention}"
   )
   e.set_image(url=choice(snowflakes))
   await ctx.send(
