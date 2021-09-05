@@ -189,7 +189,6 @@ async def prelude(ctx: SlashContext):
       ],
   )
 
-
 @slash.component_callback()
 async def prelude_button(ctx: ComponentContext):
   preludes = [
@@ -207,7 +206,9 @@ async def prelude_button(ctx: ComponentContext):
       "https://cdn.discordapp.com/attachments/838805399162716190/848328589777961021/-OEoGmagOx9osKooCw0udJyiqHmvwJxcQO-RVuhqViBxOI_orIDHMjubmlQDaxc68eL39Zt81iG_vu9BXkFKrVww6R9U58kVy-tc.png",
       "https://cdn.discordapp.com/attachments/838805399162716190/848328665137938452/9RUxmLUV_OMKR5cdAgWGHoE3fuGnAagqiL9H52hOXtGFe19B65-vUAiR9om5sve4jmTt3ybX0mQ1UmUHVcjR5BfKpHqTMeL5y2tw.png",
   ]
-  e = Embed(title="Prelude", colour=Colour.orange(), footer=f"Requested by {ctx.origin_message.author.name}")
+  e = Embed(title="Prelude", colour=Colour.orange(), 
+    description=f"Requested by {ctx.author.mention}"
+  )
   e.set_image(url=choice(preludes))
   await ctx.send(
       embed=e,
@@ -272,7 +273,8 @@ async def snowflake_button(ctx: ComponentContext):
       "https://cdn.discordapp.com/attachments/841542812104917014/879038803313061898/Screen_Shot_2021-08-22_at_9.24.42_AM.png",
       "https://cdn.discordapp.com/attachments/841542812104917014/879038803958960128/Screen_Shot_2021-08-22_at_9.24.56_AM.png"
   ]
-  e = Embed(title="Snowflake", colour=Colour(0x82bbbe))
+  e = Embed(title="Snowflake", colour=Colour(0x82bbbe), description=f"Requested by {ctx.author.mention}"
+  )
   e.set_image(url=choice(snowflakes))
   await ctx.send(
       embed=e,
@@ -348,6 +350,7 @@ async def on_component(ctx: ComponentContext):
       return
     await message.delete()
     await ctx.edit_origin(content="Event removed.")
+
   elif ctx.custom_id == "event_rsvp":
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
