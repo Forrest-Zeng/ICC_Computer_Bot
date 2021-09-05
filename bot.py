@@ -7,8 +7,8 @@ from discord_slash.model import ButtonStyle, SlashCommandPermissionType
 from random import choice
 from urllib.parse import quote_plus
 from itertools import chain
-from gevent.pywsgi import WSGIServer
-from flask import Flask, jsonify
+# from gevent.pywsgi import WSGIServer
+# from flask import Flask, jsonify
 import requests, schedule, asyncio, datetime, ship_parser, io, re #, shutil, cv2, pytesseract
 
 
@@ -17,39 +17,39 @@ slash = SlashCommand(bot, sync_commands=True)
 guilds = [800120401107746846]
 test_guilds = [842931029701427251]
 
-async def get_members(): # get members from channel
-  channel = (await bot.fetch_channel(867913713301192705)).name
-  return int(channel[10:])
+# async def get_members(): # get members from channel
+#   channel = (await bot.fetch_channel(867913713301192705)).name
+#   return int(channel[10:])
 
-def _cors(response):
-  response.headers["Access-Control-Allow-Origin"] = "*"
-  return response
+# def _cors(response):
+#   response.headers["Access-Control-Allow-Origin"] = "*"
+#   return response
 
-members = 0
+# members = 0
 
 @bot.event
 async def on_ready():
   print("Bot Ready!")
 
-  global members
-  members = await get_members() # start off with number of members
-  app = Flask("server") # identification for application
-  @app.route("/")
-  def index():
-    return "Official ICC Bot!"
-  @app.route("/api/members")
-  def members():
-    return _cors(jsonify({
-      "members": members
-    })) # return members, and allow CORS
-  WSGIServer(('', 5000), app).serve_forever()
+  # global members
+  # members = await get_members() # start off with number of members
+  # app = Flask("server") # identification for application
+  # @app.route("/")
+  # def index():
+  #   return "Official ICC Bot!"
+  # @app.route("/api/members")
+  # def members():
+  #   return _cors(jsonify({
+  #     "members": members
+  #   })) # return members, and allow CORS
+  # WSGIServer(('', 5000), app).serve_forever()
 
   await bot.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="over the ICC!"))
 
-async def on_guild_channel_update(_before, after):
-  if after.id == 867913713301192705: # check if it is the Verified channel in the correct server
-    global members
-    members = int(after.name[10:])
+# async def on_guild_channel_update(_before, after):
+#   if after.id == 867913713301192705: # check if it is the Verified channel in the correct server
+#     global members
+#     members = int(after.name[10:])
 
 
 @bot.event
