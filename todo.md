@@ -17,3 +17,5 @@
   ```python
   await ctx.send("The user you are trying to accept has not yet accepted the Terms and Conditions. Please wait to verify until they do.")
   ```
+
+# do /voting-form

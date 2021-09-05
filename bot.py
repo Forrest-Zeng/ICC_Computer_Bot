@@ -1579,5 +1579,3 @@ async def form(ctx: SlashContext, link):
 
 #   await ctx.send("UnRSVPed " + member.display_name + " successfully!",
 #                   hidden=True)
-
-print("manipulation")
