@@ -1,4 +1,4 @@
-from discord import Client, Intents, Embed, File, Colour, ChannelType, AuditLogAction, Status, ActivityType, Activity
+from discord import Client, Intents, Embed, File, Colour, ChannelType, AuditLogAction, Status, ActivityType, Activity, DMChannel
 from discord.utils import escape_markdown as escape
 from discord_slash import SlashCommand, SlashContext, ComponentContext
 from discord_slash.utils.manage_commands import create_option, create_choice, create_permission
@@ -6,50 +6,42 @@ from discord_slash.utils.manage_components import create_button, create_actionro
 from discord_slash.model import ButtonStyle, SlashCommandPermissionType
 from random import choice
 from urllib.parse import quote_plus
-from itertools import chain
-# from gevent.pywsgi import WSGIServer
-# from flask import Flask, jsonify
-import requests, schedule, asyncio, datetime, ship_parser, io, re #, shutil, cv2, pytesseract
-
+from math_helpers import quadratic, math_equation
+import requests, datetime, ship_parser, io, re, time  #, shutil, cv2, pytesseract
 
 bot = Client(Intents=Intents.default())
 slash = SlashCommand(bot, sync_commands=True)
 guilds = [800120401107746846]
 test_guilds = [842931029701427251]
 
-# async def get_members(): # get members from channel
-#   channel = (await bot.fetch_channel(867913713301192705)).name
-#   return int(channel[10:])
-
-# def _cors(response):
-#   response.headers["Access-Control-Allow-Origin"] = "*"
-#   return response
-
-# members = 0
 
 @bot.event
 async def on_ready():
   print("Bot Ready!")
 
-  # global members
-  # members = await get_members() # start off with number of members
-  # app = Flask("server") # identification for application
-  # @app.route("/")
-  # def index():
-  #   return "Official ICC Bot!"
-  # @app.route("/api/members")
-  # def members():
-  #   return _cors(jsonify({
-  #     "members": members
-  #   })) # return members, and allow CORS
-  # WSGIServer(('', 5000), app).serve_forever()
+  await bot.change_presence(status=Status.online,
+                            activity=Activity(type=ActivityType.watching,
+                                              name="over the ICC!"))
 
-  await bot.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="over the ICC!"))
+  # edit field of a message
 
-# async def on_guild_channel_update(_before, after):
-#   if after.id == 867913713301192705: # check if it is the Verified channel in the correct server
-#     global members
-#     members = int(after.name[10:])
+  # send announcement MAKE SURE ALL PINGS ARE USING DISCORD SYNTAX
+  # <@!id> for members with nicknames
+  # <@id> for members without nicknames
+  # <@&id> for roles
+  # <#id> for channels
+  # channel = await bot.fetch_channel(800156492597821460)
+  # await channel.send(content="<@&813265216464355348> <@&839157638222708827> The time has come for a new competition! The competition is based on cryptography apps and infrastructure. Please go to <#842239135926059028> if you are interested in this competition. Please note that there is no limit for the number of members in team so we would like it if everyone signed up under an official ICC team which would promote your chances of winning (prizes will be distributed equally).\n\nLink here: https://ignition.devpost.com/")
+
+  # channel = await bot.fetch_channel(800156492597821460)
+  # message = await channel.fetch_message(886048007949287434)
+
+  # embed = message.embeds[0].to_dict()
+
+  # index = list(map(lambda field: field["name"] == "Uncompleted", embed["fields"])).index(True)
+  # embed["fields"][index]["value"] = """- <@718128686850637955>\n- <@!745408105503785010>\n- <@!521575534011088916>\n- <@!491788921970229248>\n- <@!451588543618220042>\n- <@!693322971380711514>\n- <@!729749347570286643>\n- <@!539882042700201985>\n- <@!738512585371942992>"""
+
+  # await message.edit(embed=Embed.from_dict(embed))
 
 
 @bot.event
@@ -105,8 +97,9 @@ async def verify(ctx: SlashContext,
                  school,
                  referral="None",
                  email="Not Provided"):
-  if (ctx.channel.name != "verify" or any(
-      list(map(lambda e: e.id == 839941660942270464, ctx.author.roles)))) and not ctx.author.id == 738900809810575390: # Tim
+  if (ctx.channel.name != "verify"
+      or any(list(map(lambda e: e.id == 839941660942270464, ctx.author.roles)))
+      ) and not ctx.author.id == 738900809810575390:  # Tim
     await ctx.send("You've already been verified!", hidden=True)
     return
   logs = None
@@ -129,22 +122,22 @@ async def verify(ctx: SlashContext,
     e.add_field(name="Member", value=ctx.author.mention)
     e.add_field(name="Referral", value=referral)
     e.add_field(name="Verified", value="No")
-    await logs.send(
-      embed=e,
-      components=[
-          create_actionrow(
-              create_button(style=ButtonStyle(3),
-                            label="Accept Application",
-                            custom_id="accept_application")),
-          create_actionrow(
-              create_button(style=ButtonStyle(4),
-                            label="Deny Application",
-                            custom_id="deny_application"))
-      ]
-    )
+    await logs.send(embed=e,
+                    components=[
+                        create_actionrow(
+                            create_button(style=ButtonStyle(3),
+                                          label="Accept Application",
+                                          custom_id="accept_application")),
+                        create_actionrow(
+                            create_button(style=ButtonStyle(4),
+                                          label="Deny Application",
+                                          custom_id="deny_application"))
+                    ])
   except:
     await logs.send([firstname, lastname, grade, school, referral])
-  await ctx.send("You're application is awaiting approval! Please wait at most a few hours to have it approved.", hidden=True)
+  await ctx.send(
+      "You're application is awaiting approval! Please wait at most a few hours to have it approved.",
+      hidden=True)
 
 
 # permissions for verified
@@ -154,7 +147,6 @@ async def verify(ctx: SlashContext,
         create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
       ]
     }"""
-
 
 # permissions for admin
 """,
@@ -166,17 +158,31 @@ async def verify(ctx: SlashContext,
       ]
     }"""
 
-@slash.slash(
-    name="prelude",
-    description="Get a picture of the cutest doggo ever.",
-    guild_ids=guilds,
-    permissions={
+admin_perms = {
       800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
+        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
+        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
+        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
       ]
     }
-)
+
+
+@slash.slash(name="prelude",
+             description="Get a picture of the cutest doggo ever.",
+             guild_ids=guilds,
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def prelude(ctx: SlashContext):
+  if ctx.channel.id not in [800120401107746849, 834525026820161636, 855512667187970048]:
+    await ctx.send(
+      embed=Embed(title="451 Unavailable for Legal Reasons!",
+                  description="Using the Prelude command has been banned by the Melody, supreme administrator, in " + ctx.channel.mention + ". Please view Prelude in <#834525026820161636>."),
+      hidden=True)
+    return
   preludes = [
       "https://cdn.discordapp.com/attachments/838805399162716190/848327737599852554/QFYOqx8AnHKJIHZliGeIBPeRaoO3i-YVUa_rF20bFPRkL3K1LxIwMSUYzb1KTcFNskppYuo8jyjOWmF9v8etKvIECuxSmOPzkj0r.png",
       "https://cdn.discordapp.com/attachments/838805399162716190/848327840432521246/t7i6HA57SxRGezGs4oMEmcdmgW3zWfnSEHUPx7yPoQu-4Iq42NgPcr9I1Wv-fh-943ndC95pTbCF9EAViaUw_90mzP6pyFi7u3je.png",
@@ -206,6 +212,7 @@ async def prelude(ctx: SlashContext):
       ],
   )
 
+
 @slash.component_callback()
 async def prelude_button(ctx: ComponentContext):
   preludes = [
@@ -223,9 +230,9 @@ async def prelude_button(ctx: ComponentContext):
       "https://cdn.discordapp.com/attachments/838805399162716190/848328589777961021/-OEoGmagOx9osKooCw0udJyiqHmvwJxcQO-RVuhqViBxOI_orIDHMjubmlQDaxc68eL39Zt81iG_vu9BXkFKrVww6R9U58kVy-tc.png",
       "https://cdn.discordapp.com/attachments/838805399162716190/848328665137938452/9RUxmLUV_OMKR5cdAgWGHoE3fuGnAagqiL9H52hOXtGFe19B65-vUAiR9om5sve4jmTt3ybX0mQ1UmUHVcjR5BfKpHqTMeL5y2tw.png",
   ]
-  e = Embed(title="Prelude", colour=Colour.orange(), 
-    description=f"Requested by {ctx.author.mention}"
-  )
+  e = Embed(title="Prelude",
+            colour=Colour.orange(),
+            description=f"Requested by {ctx.author.mention}")
   e.set_image(url=choice(preludes))
   await ctx.send(
       embed=e,
@@ -239,27 +246,34 @@ async def prelude_button(ctx: ComponentContext):
       ],
   )
 
-@slash.slash(
-    name="snowflake",
-    description="Get a picture of the cutest doggo ever.",
-    guild_ids=guilds,
-    permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+
+@slash.slash(name="snowflake",
+             description="Get a picture of the cutest doggo ever.",
+             guild_ids=guilds,
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def snowflake(ctx: SlashContext):
+  if ctx.channel.id not in [800120401107746849, 834525026820161636, 855512667187970048]:
+    await ctx.send(
+      embed=Embed(title="451 Unavailable for Legal Reasons!",
+                  description="Using the Snowflake command has been banned by the Melody, supreme administrator, in " + ctx.channel.mention + ". Please view Snowflake, supreme supreme administrator, in <#834525026820161636>."),
+      hidden=True)
+    return
   snowflakes = [
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037764128112670/Screen_Shot_2021-03-11_at_1.03.57_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037765487054878/Screen_Shot_2021-03-11_at_1.11.42_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037765487054878/Screen_Shot_2021-03-11_at_1.11.42_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037806511534160/Screen_Shot_2021-03-24_at_9.13.36_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037810399645716/snowflake2.jpg",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037809724383302/SNOWFLAKE.jpg",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879038794882494525/Screen_Shot_2021-08-22_at_9.24.32_AM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879038803313061898/Screen_Shot_2021-08-22_at_9.24.42_AM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879038803958960128/Screen_Shot_2021-08-22_at_9.24.56_AM.png"
+      "https://irvinecoding.club/assets/snowflake/0.png",
+      "https://irvinecoding.club/assets/snowflake/1.png",
+      "https://irvinecoding.club/assets/snowflake/2.png",
+      "https://irvinecoding.club/assets/snowflake/3.png",
+      "https://irvinecoding.club/assets/snowflake/4.png",
+      "https://irvinecoding.club/assets/snowflake/5.png",
+      "https://irvinecoding.club/assets/snowflake/6.png",
+      "https://irvinecoding.club/assets/snowflake/7.png",
+      "https://irvinecoding.club/assets/snowflake/8.png",
+      "https://irvinecoding.club/assets/snowflake/9.png"
   ]
   e = Embed(title="Snowflake", colour=Colour(0x82bbbe))
   e.set_image(url=choice(snowflakes))
@@ -276,25 +290,23 @@ async def snowflake(ctx: SlashContext):
   )
 
 
-
 @slash.component_callback()
 async def snowflake_button(ctx: ComponentContext):
   snowflakes = [
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037764128112670/Screen_Shot_2021-03-11_at_1.03.57_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037765487054878/Screen_Shot_2021-03-11_at_1.11.42_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037765487054878/Screen_Shot_2021-03-11_at_1.11.42_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037806511534160/Screen_Shot_2021-03-24_at_9.13.36_PM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037810399645716/snowflake2.jpg",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879037809724383302/SNOWFLAKE.jpg",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879038794882494525/Screen_Shot_2021-08-22_at_9.24.32_AM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879038803313061898/Screen_Shot_2021-08-22_at_9.24.42_AM.png",
-      "https://cdn.discordapp.com/attachments/841542812104917014/879038803958960128/Screen_Shot_2021-08-22_at_9.24.56_AM.png"
+      "https://irvinecoding.club/assets/snowflake/0.png",
+      "https://irvinecoding.club/assets/snowflake/1.png",
+      "https://irvinecoding.club/assets/snowflake/2.png",
+      "https://irvinecoding.club/assets/snowflake/3.png",
+      "https://irvinecoding.club/assets/snowflake/4.png",
+      "https://irvinecoding.club/assets/snowflake/5.png",
+      "https://irvinecoding.club/assets/snowflake/6.png",
+      "https://irvinecoding.club/assets/snowflake/7.png",
+      "https://irvinecoding.club/assets/snowflake/8.png",
+      "https://irvinecoding.club/assets/snowflake/9.png"
   ]
-  e = Embed(
-    title="Snowflake", 
-    colour=Colour(0x82bbbe), 
-    description=f"Requested by {ctx.author.mention}"
-  )
+  e = Embed(title="Snowflake",
+            colour=Colour(0x82bbbe),
+            description=f"Requested by {ctx.author.mention}")
   e.set_image(url=choice(snowflakes))
   await ctx.send(
       embed=e,
@@ -310,16 +322,25 @@ async def snowflake_button(ctx: ComponentContext):
 
 
 def remove_vote(name, vote, embed):
-  index = list(map(lambda field: field["name"].startswith(name), embed["fields"])).index(True)
+  index = list(
+      map(lambda field: field["name"].startswith(name),
+          embed["fields"])).index(True)
 
-  embed["fields"][index]["value"] = "\n".join(list(filter(lambda e: e != vote, embed["fields"][index]["value"].split("\n"))))
+  embed["fields"][index]["value"] = "\n".join(
+      list(
+          filter(lambda e: e != vote,
+                 embed["fields"][index]["value"].split("\n"))))
 
-  embed["fields"][index]["name"] = name + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")" # adds to the wrong thing
-  if embed["fields"][index]["value"] == "" or embed["fields"][index]["value"] == "No data yet.":
+  embed["fields"][index]["name"] = name + " (" + str(
+      len(embed["fields"][index]["value"].split(
+          "\n"))) + ")"  # adds to the wrong thing
+  if embed["fields"][index]["value"] == "" or embed["fields"][index][
+      "value"] == "No data yet.":
     embed["fields"][index]["name"] = name + " (0)"
     embed["fields"][index]["value"] = "No data yet."
 
   return embed
+
 
 @bot.event
 async def on_component(ctx: ComponentContext):
@@ -336,29 +357,30 @@ async def on_component(ctx: ComponentContext):
   elif ctx.custom_id.startswith("poll_remove-"):
     try:
       message = await (await
-                       bot.fetch_channel(847539091608043531)).fetch_message(
-                           int(ctx.custom_id[12:]))
+                       bot.fetch_channel(int(ctx.custom_id.split("-")[2]))).fetch_message(
+                           int(ctx.custom_id.split("-")[1]))
     except:
       await ctx.edit_origin(content="Poll already removed.")
       return
     await message.delete()
     await ctx.edit_origin(content="Poll removed.")
-  elif ctx.custom_id.startswith("poll_remove-"):
+  elif ctx.custom_id.startswith("form_remove-"):
     try:
       message = await (await
                        bot.fetch_channel(854923814710018069)).fetch_message(
-                           int(ctx.custom_id[12:])) # channel id should be 854923814710018069
+                           int(ctx.custom_id[12:])
+                       )
     except:
       await ctx.edit_origin(content="Form already removed.")
       return
     await message.delete()
     await ctx.edit_origin(content="Form removed.")
   elif ctx.custom_id.startswith("stop_spam-"):
-    jobs = schedule.get_jobs(ctx.custom_id[10:])
-    if len(jobs) == 0:
+    global spam_jobs
+    if ctx.custom_id[10:] not in spam_jobs:
       await ctx.edit_origin(content="Spam already stopped.")
       return
-    schedule.clear(ctx.custom_id[10:])
+    spam_jobs.remove(ctx.custom_id[10:])
     await ctx.edit_origin(content="Spam stopped.")
   elif ctx.custom_id.startswith("prop_remove-"):
     try:
@@ -384,7 +406,9 @@ async def on_component(ctx: ComponentContext):
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
 
-    index = list(map(lambda field: field["name"] == "Attendees", embed["fields"])).index(True)
+    index = list(
+        map(lambda field: field["name"] == "Attendees",
+            embed["fields"])).index(True)
     if ctx.author.mention in embed["fields"][index]["value"]:
       return
     if embed["fields"][index]["value"] == "No attendees yet.":
@@ -396,12 +420,17 @@ async def on_component(ctx: ComponentContext):
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
 
-    index = list(map(lambda field: field["name"] == "Attendees", embed["fields"])).index(True)
+    index = list(
+        map(lambda field: field["name"] == "Attendees",
+            embed["fields"])).index(True)
     if ctx.author.mention not in embed["fields"][index]["value"]:
       return
-    
+
     rsvp = "- " + ctx.author.mention
-    embed["fields"][index]["value"] = "\n".join(list(filter(lambda e: e != rsvp, embed["fields"][index]["value"].split("\n"))))
+    embed["fields"][index]["value"] = "\n".join(
+        list(
+            filter(lambda e: e != rsvp,
+                   embed["fields"][index]["value"].split("\n"))))
     if embed["fields"][index]["value"] == "":
       embed["fields"][index]["value"] = "No attendees yet."
     await ctx.edit_origin(embed=Embed.from_dict(embed))
@@ -410,7 +439,9 @@ async def on_component(ctx: ComponentContext):
     embed = message.embeds[0].to_dict()
 
     embed = remove_vote("Downvoters", "- " + ctx.author.mention, embed)
-    index = list(map(lambda field: field["name"].startswith("Upvoters"), embed["fields"])).index(True)
+    index = list(
+        map(lambda field: field["name"].startswith("Upvoters"),
+            embed["fields"])).index(True)
 
     if ctx.author.mention in embed["fields"][index]["value"]:
       return
@@ -419,7 +450,8 @@ async def on_component(ctx: ComponentContext):
     else:
       embed["fields"][index]["value"] += "\n- " + ctx.author.mention
 
-    embed["fields"][index]["name"] = "Upvoters " + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")"
+    embed["fields"][index]["name"] = "Upvoters " + "(" + str(
+        len(embed["fields"][index]["value"].split("\n"))) + ")"
 
     await ctx.edit_origin(embed=Embed.from_dict(embed))
   elif ctx.custom_id == "downvote":
@@ -427,7 +459,9 @@ async def on_component(ctx: ComponentContext):
     embed = message.embeds[0].to_dict()
 
     embed = remove_vote("Upvoters", "- " + ctx.author.mention, embed)
-    index = list(map(lambda field: field["name"].startswith("Downvoters"), embed["fields"])).index(True)
+    index = list(
+        map(lambda field: field["name"].startswith("Downvoters"),
+            embed["fields"])).index(True)
 
     if ctx.author.mention in embed["fields"][index]["value"]:
       return
@@ -436,7 +470,8 @@ async def on_component(ctx: ComponentContext):
     else:
       embed["fields"][index]["value"] += "\n- " + ctx.author.mention
 
-    embed["fields"][index]["name"] = "Downvoters " + " (" + str(len(embed["fields"][index]["value"].split("\n"))) + ")"
+    embed["fields"][index]["name"] = "Downvoters " + " (" + str(
+        len(embed["fields"][index]["value"].split("\n"))) + ")"
 
     await ctx.edit_origin(embed=Embed.from_dict(embed))
   elif ctx.custom_id == "clearvote":
@@ -445,94 +480,172 @@ async def on_component(ctx: ComponentContext):
 
     embed = remove_vote("Upvoters", "- " + ctx.author.mention, embed)
     embed = remove_vote("Downvoters", "- " + ctx.author.mention, embed)
-    
+
     await ctx.edit_origin(embed=Embed.from_dict(embed))
   elif ctx.custom_id == "accept_application":
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
 
-    if embed["fields"][list(map(lambda field: field["name"] == "Verified", embed["fields"])).index(True)]["value"] == "Yes":
-      message = await ctx.send(ctx.author.mention + " tried to accept a member but failed to realize that the member was *already accepted*!")
+    if embed["fields"][list(
+        map(lambda field: field["name"] == "Verified",
+            embed["fields"])).index(True)]["value"] == "Yes":
+      message = await ctx.send(
+          ctx.author.mention +
+          " tried to accept a member but failed to realize that the member was *already accepted*!"
+      )
       await message.add_reaction("👏")
       return
 
-    firstname = embed["fields"][list(map(lambda field: field["name"] == "First Name", embed["fields"])).index(True)]["value"]
-    lastname = embed["fields"][list(map(lambda field: field["name"] == "Last Name", embed["fields"])).index(True)]["value"]
+    firstname = embed["fields"][list(
+        map(lambda field: field["name"] == "First Name",
+            embed["fields"])).index(True)]["value"]
+    lastname = embed["fields"][list(
+        map(lambda field: field["name"] == "Last Name",
+            embed["fields"])).index(True)]["value"]
 
-    member = await ctx.guild.fetch_member(int("".join([letter for letter in embed["fields"][list(map(lambda field: field["name"] == "Member", embed["fields"])).index(True)]["value"] if letter.isdigit()])))
+    member = await ctx.guild.fetch_member(
+        int("".join([
+            letter for letter in embed["fields"][list(
+                map(lambda field: field["name"] == "Member",
+                    embed["fields"])).index(True)]["value"]
+            if letter.isdigit()
+        ])))
 
     await member.add_roles(ctx.guild.get_role(839941660942270464), reason="Verified")
-    await member.edit(nick=firstname.capitalize() + " " + lastname[0].capitalize() + ".")
-    
+    await member.edit(nick=firstname.capitalize() + " " +
+                      lastname[0].capitalize() + ".")
+
     e = Embed(
         title="Verified!",
         description="Thank you for verifying! You are now allowed to access the ICC Discord server. Please keep in mind your basic sense of morality while using the ICC Discord Server. Please also go to <#872667505246732320> to receive new roles including your grade level and so on. Additionally, if you would like to earn volunteer hours for any work done in the ICC, we encourage you to create a MyICC account for logging your volunteer hours. Please [create an account](https://irvinecodingclub.vercel.app/) and sign up. Then, navigate to your [dashboard](https://irvinecodingclub.vercel.app/dashboard) and click the \"edit membership\" button to fill in your credentials, including your school and grade. For membership, please simply write \"Member\". After completing these steps, you will be able to log PVSA certifying hours.\n\nWe hope you enjoy the ICC!",
         colour=15062910)
-    await (await bot.fetch_channel(800120401107746849)).send(content=member.mention + " has been verified!", embed=e)
+    await (await bot.fetch_channel(800120401107746849)).send(
+        content=member.mention + " has been verified!", embed=e)
 
-    embed["fields"][list(map(lambda field: field["name"] == "Verified", embed["fields"])).index(True)]["value"] = "Yes"
+    embed["fields"][list(
+        map(lambda field: field["name"] == "Verified",
+            embed["fields"])).index(True)]["value"] = "Yes"
 
     await ctx.edit_origin(embed=Embed.from_dict(embed))
+
+    await (await bot.fetch_channel(847204787023118366)).send(content=ctx.author.mention + " accepted application for " + (await ctx.guild.fetch_member(
+        int("".join([
+            letter for letter in embed["fields"][list(
+                map(lambda field: field["name"] == "Member",
+                    embed["fields"])).index(True)]["value"]
+            if letter.isdigit()
+        ])))).mention)
   elif ctx.custom_id == "deny_application":
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
 
-    embed["fields"][list(map(lambda field: field["name"] == "Verified", embed["fields"])).index(True)]["value"] = "Denied (can always accept again, but go through approval from a president or vice president)"
+    index = list(
+        map(lambda field: field["name"] == "Verified", embed["fields"])
+    ).index(
+        True
+    )
+    if embed["fields"][index]["value"] == "Denied (can always accept again, but go through approval from a president or vice president)":
+      message = await ctx.send(
+          ctx.author.mention +
+          " tried to deny a member but failed to realize that the member was *already deny*!"
+      )
+      await message.add_reaction("👏")
+      return
+    embed["fields"][index]["value"] = "Denied (can always accept again, but go through approval from a president or vice president)"
 
     await ctx.edit_origin(embed=Embed.from_dict(embed))
+
+    await (await bot.fetch_channel(847204787023118366)).send(content=ctx.author.mention + " denied application for " + (await ctx.guild.fetch_member(
+        int("".join([
+            letter for letter in embed["fields"][list(
+                map(lambda field: field["name"] == "Member",
+                    embed["fields"])).index(True)]["value"]
+            if letter.isdigit()
+        ])))).mention)
   elif ctx.custom_id == "completed_form":
     message = ctx.origin_message
     embed = message.embeds[0].to_dict()
 
-    completed_index = list(map(lambda field: field["name"] == "Completed", embed["fields"])).index(True)
+    completed_index = list(
+        map(lambda field: field["name"] == "Completed",
+            embed["fields"])).index(True)
     if ctx.author.mention in embed["fields"][completed_index]["value"]:
-      await ctx.send("Apparently " + ctx.author.mention + " tried to complete the form twice! (and did not succeed)")
+      await ctx.send("Apparently " + ctx.author.mention +
+                     " tried to complete the form twice! (and did not succeed)"
+                     )
       return
 
-    index = list(map(lambda field: field["name"] == "Uncompleted", embed["fields"])).index(True)
+    index = list(
+        map(lambda field: field["name"] == "Uncompleted",
+            embed["fields"])).index(True)
     if embed["fields"][index]["value"] == "@everyone":
       embed["fields"][completed_index]["value"] = "- " + ctx.author.mention
-      people = list(chain.from_iterable([role.members for role in await ctx.guild.fetch_roles() if role.permissions.administrator]))
-      
-      embed["fields"][index]["value"] = "\n".join(["- " + member.mention for member in people])
+
+      embed["fields"][index][
+          "value"] = "- <@718128686850637955>\n- <@!745408105503785010>\n- <@!521575534011088916>\n- <@!491788921970229248>\n- <@!451588543618220042>\n- <@!693322971380711514>\n- <@!738900809810575390>\n- <@!729749347570286643>\n- <@!539882042700201985>\n- <@!738512585371942992>"  # admins
+      embed["fields"][index]["value"] = "\n".join(
+          list(
+              filter(lambda e: ctx.author.mention not in e,
+                     embed["fields"][index]["value"].split("\n"))))
     else:
-      embed["fields"][index]["value"] = "\n".join(list(filter(lambda e: ctx.author.mention not in e, embed["fields"][index]["value"].split("\n"))))
+      embed["fields"][index]["value"] = "\n".join(
+          list(
+              filter(lambda e: ctx.author.mention not in e,
+                     embed["fields"][index]["value"].split("\n"))))
       if embed["fields"][index]["value"] == "":
         embed["fields"][index]["value"] = "No one?"
         embed["fields"][completed_index]["value"] = "Everyone?"
         await ctx.edit_origin(embed=Embed.from_dict(embed))
-        initiator = await bot.fetch_user(int(message.content.split("<@!")[-1].split("<@")[-1].split(">")[0]))
-        await ctx.message.reply(content=initiator.mention + " Form has finally been finished!")
+        initiator = await bot.fetch_user(
+            int(
+                message.content.split("<@!")[-1].split("<@")[-1].split(">")[0])
+        )
+        await ctx.message.reply(content=initiator.mention +
+                                " Form has finally been finished!")
       embed["fields"][completed_index]["value"] += "\n- " + ctx.author.mention
     await ctx.edit_origin(embed=Embed.from_dict(embed))
+  elif ctx.custom_id == "ping_form":
+    message = ctx.origin_message
+    embed = message.embeds[0].to_dict()
+
+    index = list(
+        map(lambda field: field["name"] == "Uncompleted",
+            embed["fields"])).index(True)
+    if embed["fields"][index]["value"] == "@everyone":
+      await ctx.send("**People who have still not completed the form**:\n\n- <@718128686850637955>\n- <@!745408105503785010>\n- <@!521575534011088916>\n- <@!491788921970229248>\n- <@!451588543618220042>\n- <@!693322971380711514>\n- <@!738900809810575390>\n- <@!729749347570286643>\n- <@!539882042700201985>\n- <@!738512585371942992>")
+    else:
+      await ctx.send("**People who have still not completed the form**:\n\n" + embed["fields"][index]["value"])
   else:
     pass  # do stuff
 
-def profane(text):
-  return requests.get("https://www.purgomalum.com/service/containsprofanity?text=" + quote_plus(text)).text == "true"
 
-@slash.slash(
-    name="cuss",
-    description="Hide your annoying profane messages.",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="message",
-            description="Your profane message goes here",
-            option_type=3,
-            required=True,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+def profane(text):
+  return requests.get(
+      "https://www.purgomalum.com/service/containsprofanity?text=" +
+      quote_plus(text)).text == "true"
+
+
+@slash.slash(name="cuss",
+             description="Hide your annoying profane messages.",
+             guild_ids=guilds,
+             options=[
+                 create_option(
+                     name="message",
+                     description="Your profane message goes here",
+                     option_type=3,
+                     required=True,
+                 )
+             ],
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def cuss(ctx: SlashContext, message):
   bleeped = requests.get(
-      "https://www.purgomalum.com/service/plain?fill_char=%3D&add=david&text=" +
-      quote_plus(message)).text
+      "https://www.purgomalum.com/service/plain?fill_char=%3D&add=david&text="
+      + quote_plus(message)).text
 
   e = Embed(
       title="⚠️Cussing Alert⚠️",
@@ -545,43 +658,44 @@ async def cuss(ctx: SlashContext, message):
   await ctx.send("Message sent by " + ctx.author.display_name, embed=e)
 
 
-@slash.slash(
-    name="suggest",
-    description="Submit a suggestion.",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="suggestion",
-            description="Your wonderful idea",
-            option_type=3,
-            required=True,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+@slash.slash(name="suggest",
+             description="Submit a suggestion.",
+             guild_ids=guilds,
+             options=[
+                 create_option(
+                     name="suggestion",
+                     description="Your wonderful idea",
+                     option_type=3,
+                     required=True,
+                 )
+             ],
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def suggest(ctx: SlashContext, suggestion):
   e = Embed(title="Suggestion", description=suggestion, colour=15062910)
   e.add_field(name="Upvoters (0)", value="No data yet.")
   e.add_field(name="Downvoters (0)", value="No data yet.")
   e.add_field(name="Suggested By", value=ctx.author.mention)
-  message = await (await bot.fetch_channel(847539091608043531)).send(embed=e, components=[
-      create_actionrow(
-          create_button(style=ButtonStyle(3),
-                        label="Upvote",
-                        custom_id="upvote")),
-      create_actionrow(
-          create_button(style=ButtonStyle(4),
-                        label="Downvote",
-                        custom_id="downvote")),
-      create_actionrow(
-          create_button(style=ButtonStyle(2),
-                        label="Clear Vote",
-                        custom_id="clearvote"))
-  ])
+  message = await (await bot.fetch_channel(847539091608043531)).send(
+      embed=e,
+      components=[
+          create_actionrow(
+              create_button(style=ButtonStyle(3),
+                            label="Upvote",
+                            custom_id="upvote")),
+          create_actionrow(
+              create_button(style=ButtonStyle(4),
+                            label="Downvote",
+                            custom_id="downvote")),
+          create_actionrow(
+              create_button(style=ButtonStyle(2),
+                            label="Clear Vote",
+                            custom_id="clearvote"))
+      ])
 
   await ctx.send(
       embed=Embed(title="Success!",
@@ -595,16 +709,18 @@ async def suggest(ctx: SlashContext, suggestion):
       hidden=True)
 
 
-def spam_ping(channel, embed, content, id):
-  asyncio.create_task(
-      channel.send(content,
-                   embed=embed,
-                   components=[
-                       create_actionrow(
-                           create_button(style=ButtonStyle(4),
-                                         label="Stop the Spam",
-                                         custom_id="stop_spam-" + id))
-                   ]))
+async def spam_ping(channel, embed, content, ctx_id):
+  await channel.send(content,
+                     embed=embed,
+                     components=[
+                         create_actionrow(
+                             create_button(style=ButtonStyle(4),
+                                           label="Stop the Spam",
+                                           custom_id="stop_spam-" + ctx_id))
+                     ])
+
+
+spam_jobs = []
 
 
 @slash.slash(
@@ -631,14 +747,7 @@ def spam_ping(channel, embed, content, id):
             required=True,
         )
     ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+    permissions=admin_perms)
 async def spam(ctx: SlashContext, user, reason, threat):
   if not ctx.author.guild_permissions.administrator:
     await ctx.send("You must be an admin to spam ping!", hidden=True)
@@ -669,18 +778,6 @@ async def spam(ctx: SlashContext, user, reason, threat):
     })
     channel = await bot.fetch_channel(876538180206198794)
 
-    spam_ping(channel=channel,
-              embed=embed,
-              content=mention,
-              id=ctx.interaction_id)
-
-    schedule.every(30).minutes.do(spam_ping,
-                                  channel=channel,
-                                  embed=embed,
-                                  content=mention,
-                                  id=ctx.interaction_id).tag(
-                                      ctx.interaction_id)
-
     await ctx.send(
         embed=Embed(title="Success!",
                     description="This bot will now spam ping " +
@@ -695,31 +792,38 @@ async def spam(ctx: SlashContext, user, reason, threat):
         ],
         hidden=True)
 
+    spam_jobs.append(ctx.interaction_id)
+    while ctx.interaction_id in spam_jobs:
+      await spam_ping(channel=channel,
+                      embed=embed,
+                      content=mention,
+                      ctx_id=ctx.interaction_id)
+      time.sleep(18000)
 
-@slash.slash(
-    name="nominate",
-    description="Nominate a person for Member of the Month.",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="member",
-            description="Member to Nominate (mention)",
-            option_type=6,
-            required=True,
-        ),
-        create_option(
-            name="reason",
-            description="Reason to Nominate Member",
-            option_type=3,
-            required=True,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+
+@slash.slash(name="nominate",
+             description="Nominate a person for Member of the Month.",
+             guild_ids=guilds,
+             options=[
+                 create_option(
+                     name="member",
+                     description="Member to Nominate (mention)",
+                     option_type=6,
+                     required=True,
+                 ),
+                 create_option(
+                     name="reason",
+                     description="Reason to Nominate Member",
+                     option_type=3,
+                     required=True,
+                 )
+             ],
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def nominate(ctx: SlashContext, member, reason):
   channel = None
   for _channel in ctx.guild.channels:
@@ -767,14 +871,7 @@ async def nominate(ctx: SlashContext, member, reason):
             required=True,
         )
     ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+    permissions=admin_perms)
 async def reset_nominations(ctx: SlashContext, confirmation):
   if not ctx.author.guild_permissions.administrator:
     await ctx.send("You must be an admin to reset the nominations!",
@@ -831,17 +928,10 @@ async def reset_nominations(ctx: SlashContext, confirmation):
   await ctx.send("Nominations reset successfully!", hidden=True)
 
 
-@slash.slash(
-    name="start_nominating",
-    description="Start the member of the month nomination process.",
-    guild_ids=guilds,
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
+@slash.slash(name="start_nominating",
+             description="Start the member of the month nomination process.",
+             guild_ids=guilds,
+             permissions=admin_perms
 )
 async def start_nominating(ctx: SlashContext):
   if not ctx.author.guild_permissions.administrator:
@@ -871,30 +961,29 @@ async def start_nominating(ctx: SlashContext):
   await ctx.send("Nominations started successfully!", hidden=True)
 
 
-@slash.slash(
-    name="ship",
-    description="Ship two people (as a joke, of course).",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="person_1",
-            description="First Person",
-            option_type=3,
-            required=True,
-        ),
-        create_option(
-            name="person_2",
-            description="Second Person",
-            option_type=3,
-            required=True,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+@slash.slash(name="ship",
+             description="Ship two people (as a joke, of course).",
+             guild_ids=guilds,
+             options=[
+                 create_option(
+                     name="person_1",
+                     description="First Person",
+                     option_type=3,
+                     required=True,
+                 ),
+                 create_option(
+                     name="person_2",
+                     description="Second Person",
+                     option_type=3,
+                     required=True,
+                 )
+             ],
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def ship(ctx: SlashContext, person_1, person_2):
   parser = ship_parser.ShipParser()
   parser.feed(
@@ -918,8 +1007,7 @@ async def ship(ctx: SlashContext, person_1, person_2):
 @slash.slash(
     name="help",
     description="Get some information about the Irvine Coding Club Bot.",
-    guild_ids=guilds
-)
+    guild_ids=guilds)
 async def help(ctx: SlashContext):
   await ctx.send(embed=Embed.from_dict({
       "title": "Irvine Coding Club Help",
@@ -934,33 +1022,33 @@ async def help(ctx: SlashContext):
                  hidden=True)
 
 
-@slash.slash(
-    name="info",
-    description="Get important links to ICC resources.",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="item",
-            description="The item you want.",
-            option_type=3,
-            required=True,
-            choices=[
-                create_choice(name="ICC Website", value="website_event"),
-                create_choice(
-                    name="ICC Join Link",
-                    value="join_event"
-                ),
-                create_choice(name="ICC Facebook", value="facebook_event"),
-                create_choice(name="ICC Instagram", value="instagram_event"),
-                create_choice(name="ICC Youtube", value="youtube_event")
-            ])
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+@slash.slash(name="info",
+             description="Get important links to ICC resources.",
+             guild_ids=guilds,
+             options=[
+                 create_option(name="item",
+                               description="The item you want.",
+                               option_type=3,
+                               required=True,
+                               choices=[
+                                   create_choice(name="ICC Website",
+                                                 value="website_event"),
+                                   create_choice(name="ICC Join Link",
+                                                 value="join_event"),
+                                   create_choice(name="ICC Facebook",
+                                                 value="facebook_event"),
+                                   create_choice(name="ICC Instagram",
+                                                 value="instagram_event"),
+                                   create_choice(name="ICC Youtube",
+                                                 value="youtube_event")
+                               ])
+             ],
+             permissions={
+                 800120401107746846: [
+                     create_permission(839941660942270464,
+                                       SlashCommandPermissionType.ROLE, True)
+                 ]
+             })
 async def info(ctx: SlashContext, item):
   if item == "facebook_event":
     embed = {
@@ -1016,7 +1104,8 @@ async def info(ctx: SlashContext, item):
   elif item == "join_event":
     embed = {
         "title": "ICC Join Link",
-        "description": "Click the button below to get the link to join the ICC."
+        "description":
+        "Click the button below to get the link to join the ICC."
     }
     buttons = [
         create_actionrow(
@@ -1024,13 +1113,17 @@ async def info(ctx: SlashContext, item):
                           label="ICC Join Link",
                           url="https://irvinecoding.club/join"))
     ]
-  
+
   embed["color"] = 15062910
 
   await ctx.send(embed=Embed.from_dict(embed), components=buttons, hidden=True)
 
 
-reactions = ["0⃣", "1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8⃣", "9⃣", "🔟", "🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹", "🇺", "🇻", "🇼", "🇽", "🇾", "🇿"]
+reactions = [
+    "0⃣", "1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8⃣", "9⃣", "🔟", "🇦", "🇧",
+    "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶",
+    "🇷", "🇸", "🇹", "🇺", "🇻", "🇼", "🇽", "🇾", "🇿"
+]
 
 
 @slash.slash(
@@ -1043,18 +1136,28 @@ reactions = ["0⃣", "1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8�
                       option_type=3,
                       required=True),
         create_option(
+            name="description",
+            description="Description of your poll",
+            option_type=3,
+            required=True),
+        create_option(
             name="options",
             description="CSV of Options (ex. a,b,c); must not exceed 37 options (do not include commas in your poll options)",
             option_type=3,
-            required=True)
+            required=True),
+        create_option(
+            name="channel",
+            description="Channel to display poll. Must be either suggestions-n-polls or council-alerts.",
+            option_type=7,
+            required=False)
     ],
     permissions={
-      800120401107746846: [
-        create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
-async def poll(ctx: SlashContext, title, options):
+        800120401107746846: [
+            create_permission(839941660942270464,
+                              SlashCommandPermissionType.ROLE, True)
+        ]
+    })
+async def poll(ctx: SlashContext, title, description, options, channel=None):
   options = options.split(",")
 
   if len(options) > 37:
@@ -1062,14 +1165,25 @@ async def poll(ctx: SlashContext, title, options):
         "Sorry, your message had more than 37 options. If an option contains a comma, try to remove it.",
         hidden=True)
 
-  channel = None
-  for _channel in ctx.guild.channels:
-    if _channel.name == "suggestions-n-polls":
-      channel = _channel
-      break
+  if len(options) < 2:
+    return ctx.send(
+        "Sorry, your message had less than 2 options which is not allowed. Please add another option. To add more options, separate them with commas (,).",
+        hidden=True)
+
   if channel == None:
+    channel = None
+    for _channel in ctx.guild.channels:
+      if _channel.name == "suggestions-n-polls":
+        channel = _channel
+        break
+    if channel == None:
+      await ctx.send(
+          "Must be a channel named suggestions-n-polls in the server you are using this command! Please contact an admin if you believe this is a mistake!",
+          hidden=True)
+      return
+  elif channel.id not in [854923814710018069, 847539091608043531]:
     await ctx.send(
-        "Must be a channel named suggestions-n-polls in the server you are using this command! Please contact an admin if you believe this is a mistake!",
+        "Invalid channel! Leave blank to find default channel.",
         hidden=True)
     return
 
@@ -1078,7 +1192,7 @@ async def poll(ctx: SlashContext, title, options):
       "value": escape(e.strip())
   } for i, e in enumerate(options)]
 
-  embed = {"title": "Poll: " + title, "color": 15062910, "fields": options}
+  embed = {"title": "Poll: " + title, "color": 15062910, "description": description, "fields": options}
 
   message = await channel.send("Poll requested by " +
                                escape(ctx.author.display_name),
@@ -1089,13 +1203,20 @@ async def poll(ctx: SlashContext, title, options):
 
   await ctx.send("Poll creation successful!\nView the message here: " +
                  message.jump_url,
+                 components=[
+                     create_actionrow(
+                         create_button(style=ButtonStyle(4),
+                                       label="Remove Poll",
+                                       custom_id="poll_remove-" +
+                                       str(channel.id) + "-" + str(message.id)))
+                 ],
                  hidden=True)
 
 
 @slash.slash(
     name="purge",
     description="Purge the channel and wipe out messages.",
-    guild_ids=guilds,
+    guild_ids=test_guilds,
     options=[
         create_option(
             name="num",
@@ -1103,14 +1224,7 @@ async def poll(ctx: SlashContext, title, options):
             option_type=4,
             required=False)
     ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+    permissions=admin_perms)
 async def purge(ctx: SlashContext, num=None):
   if not ctx.author.guild_permissions.administrator:
     await ctx.send("You must be an admin to purge channels!", hidden=True)
@@ -1122,29 +1236,23 @@ async def purge(ctx: SlashContext, num=None):
   else:
     await ctx.send("Please purge a *positive integer*!", hidden=True)
     return
-  await ctx.channel.send(("All" if num == None else str(num)) + " message" + ("s" if num != 1 else "") + " purged by " + ctx.author.display_name + "!")
+  await ctx.channel.send(("All" if num == None else str(num)) + " message" +
+                         ("s" if num != 1 else "") + " purged by " +
+                         ctx.author.display_name + "!")
 
 
-@slash.slash(
-    name="prop",
-    description="Submit a proposal (for council members only).",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="proposal",
-            description="No profanity please.",
-            option_type=3,
-            required=True,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+@slash.slash(name="prop",
+             description="Submit a proposal (for council members only).",
+             guild_ids=guilds,
+             options=[
+                 create_option(
+                     name="proposal",
+                     description="No profanity please. Use \\n for a newline.",
+                     option_type=3,
+                     required=True,
+                 )
+             ],
+             permissions=admin_perms)
 async def prop(ctx: SlashContext, proposal):
   if not ctx.author.guild_permissions.administrator:
     await ctx.send("You must be an admin to propose to the council!",
@@ -1156,11 +1264,16 @@ async def prop(ctx: SlashContext, proposal):
 
   await propchannel.edit(name="Proposition Number: " + propnum)
 
-  e = Embed(title="Council Proposition #" + propnum, description=proposal, colour=15062910)
+  e = Embed(title="Council Proposition #" + propnum,
+            description=proposal.replace("\\n", "\n\n"),
+            colour=15062910)
   e.add_field(name="Upvoters (0)", value="No data yet.")
   e.add_field(name="Downvoters (0)", value="No data yet.")
   e.add_field(name="Proposed By", value=ctx.author.mention)
-  message = await (await bot.fetch_channel(842631441220370452)).send("@everyone", embed=e, components=[
+  message = await (await bot.fetch_channel(842631441220370452)).send(
+      "@everyone",
+      embed=e,
+      components=[
           create_actionrow(
               create_button(style=ButtonStyle(3),
                             label="Upvote",
@@ -1175,159 +1288,219 @@ async def prop(ctx: SlashContext, proposal):
                             custom_id="clearvote"))
       ])
 
-  await ctx.send(
-      embed=Embed(title="Success!",
-                  description="This proposal has been submitted."),
-      components=[
-          create_actionrow(
-              create_button(style=ButtonStyle(4),
-                            label="Remove Proposal",
-                            custom_id="prop_remove-" + str(message.id)))
-      ],
-      hidden=True)
+  await ctx.send(embed=Embed(title="Success!",
+                             description="This proposal has been submitted."),
+                 components=[
+                     create_actionrow(
+                         create_button(style=ButtonStyle(4),
+                                       label="Remove Proposal",
+                                       custom_id="prop_remove-" +
+                                       str(message.id)))
+                 ],
+                 hidden=True)
 
 
 class SnipeStore:
-    def __init__(self, channel):
-        self.channel = channel
-        self._messages = []
-        pass
-    
-    def get(self, messages=1):
-        return self._messages[:messages]
-    
-    def pop(self):
-        if len(self._messages) == 0:
-            return False
-        return self._messages.pop()
-    
-    def add(self, message):
-        return self._messages.append(message)
+  def __init__(self, channel):
+    self.channel = channel
+    self._messages = []
+    pass
+
+  def get(self, messages=1):
+    return self._messages[:messages]
+
+  def pop(self):
+    if len(self._messages) == 0:
+      return False
+    return self._messages.pop(0)
+
+  def add(self, message):
+    return self._messages.append(message)
+
 
 async def attachment_to_file(attachment):
-    return File(fp=io.BytesIO(await attachment.read()), filename=attachment.filename) # for snipe
-    # but reusable
+  return File(fp=io.BytesIO(await attachment.read()),
+              filename=attachment.filename)  # for snipe
+  # but reusable
+
 
 class SnipedMessage:
-    @classmethod
-    async def create(cls, created_at, deleted_at, author, deleter, content, embeds, attachments):
-        self = SnipedMessage()
-        self.created_at = created_at.strftime("%m/%d/%Y, %H:%M:%S")
-        self.deleted_at = deleted_at.strftime("%m/%d/%Y, %H:%M:%S")
-        self.author = author.mention
-        self.deleter = deleter
-        self.content = content
-        self.embeds = embeds
-        self.files = [await attachment_to_file(i) for i in attachments]
-        return self
+  @classmethod
+  async def create(cls, created_at, deleted_at, author, deleter, content,
+                   embeds, attachments, ghost_pinged):
+    self = SnipedMessage()
+    self.created_at = created_at.strftime("%m/%d/%Y, %H:%M:%S")
+    self.deleted_at = deleted_at.strftime("%m/%d/%Y, %H:%M:%S")
+    self.author = author.mention
+    self.deleter = deleter
+    self.content = content
+    self.embeds = embeds
+    self.files = [await attachment_to_file(i) for i in attachments]
+    self.ghost_pinged = ghost_pinged
+    return self
+
 
 snipes = {}
-@slash.slash(
-    name="snipe",
-    description="Reveal the last message deleted in the channel",
-    guild_ids=guilds,
-    options=[
-        create_option(
-            name="channel",
-            description="No profanity please.",
-            option_type=7,
-            required=False,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+
+
+@slash.slash(name="snipe",
+             description="Reveal the last message deleted in the channel",
+             guild_ids=guilds + test_guilds,
+             options=[
+                 create_option(
+                     name="channel",
+                     description="No profanity please.",
+                     option_type=7,
+                     required=False,
+                 )
+             ],
+             permissions=admin_perms)
 async def snipe(ctx: SlashContext, channel=None):
   if not ctx.author.guild_permissions.administrator:
-    await ctx.send("You must be an admin to snipe messages!",
-                  hidden=True)
+    await ctx.send("You must be an admin to snipe messages!", hidden=True)
+    return
+  
+  if ctx.author.id == 451588543618220042:
+    await ctx.send("You are not entitled to use this priviledge.", hidden=False)
     return
 
   if channel == None:
     channel = ctx.channel
-  elif channel.type in [ChannelType.text, ChannelType.news]:
-    await ctx.send(content="Error: channel was not a text channel.")
+  elif channel.type not in [ChannelType.text, ChannelType.news]:
+    await ctx.send(content="Error: " + channel.mention + " is not a text channel.", hidden=True)
     return
-  
+
   if channel.id not in snipes:
     snipes[channel.id] = SnipeStore(channel.id)
-  
+
   messages = snipes[channel.id].get()
   if len(messages) == 0:
-    await ctx.send(content="No messages to snipe in " + channel.mention + "!", hidden=True)
-    return  
+    await ctx.send(content="No messages to snipe in " + channel.mention + "!",
+                   hidden=True)
+    return
   snipes[channel.id].pop()
 
   message = messages[0]
 
-  embed = Embed(title="Snipe Requested by " + ctx.author.display_name,
-                  description="Actual message below.")
+  embed = Embed(title="Snipe Requested by " + ctx.author.display_name)
 
+  embed.add_field(name="Message Content", value=(message.content if len(message.content) else "No Content"))
   embed.add_field(name="Sent By", value=message.author)
   embed.add_field(name="Deleted By", value=message.deleter)
-  embed.add_field(name="Created At", value=message.created_at, inline=False)
-  embed.add_field(name="Deleted At", value=message.deleted_at, inline=False)
+  embed.add_field(name="Sent At", value=message.created_at)
+  embed.add_field(name="Deleted At", value=message.deleted_at)
+  embed.add_field(name="Ghost Ping?", value="Yes" if message.ghost_pinged else "No")
 
-  await ctx.send(embed=embed)
-
-  if len(message.content) != 0 or len(message.files) != 0:
-    await ctx.channel.send(content=message.content, files=message.files)
+  await ctx.send(embed=embed, files=message.files)
 
   for i, embed in enumerate(message.embeds):
-    await ctx.channel.send(content="Embed #" + str(i), embed=Embed.from_dict(embed.to_dict()))
+    await ctx.channel.send(content="Embed #" + str(i),
+                           embed=Embed.from_dict(embed.to_dict()))
+
 
 @bot.event
 async def on_message_delete(message):
   deleter = message.author.mention
-  async for entry in message.guild.audit_logs(limit=1,action=AuditLogAction.message_delete):
+  deleter_id = None
+  async for entry in message.guild.audit_logs(
+      limit=1, action=AuditLogAction.message_delete):
     if entry.extra.channel.id == message.channel.id:
       deleter = entry.user.mention
+      deleter_id = entry.user.id
     else:
       deleter = "Unknown"
+  
+  if deleter_id in [876494772821430332, 738900809810575390]:
+    return
 
   if message.channel.id not in snipes:
     snipes[message.channel.id] = SnipeStore(message.channel.id)
-  
-  snipes[message.channel.id].add(await SnipedMessage.create(created_at=message.created_at, deleted_at=datetime.datetime.now(), author=message.author, deleter=deleter, content=message.content, embeds=message.embeds, attachments=message.attachments))
+
+  ghost_pinged = len(message.raw_role_mentions) or len(message.raw_mentions) or "@everyone" in message.content or "@here" in message.content
+
+  if message.guild.id == 800120401107746846:
+    if deleter_id == 451588543618220042:
+      await (await bot.fetch_channel(847204787023118366)).send("David has deleted a message in " + message.channel.mention + ".")
+    if ghost_pinged and message.author.id == deleter_id and message.author.id != 876494772821430332:
+      channel = message.guild.get_channel(847204787023118366)
+      embed = Embed(title="Ghost Ping",
+                    description=message.author.mention + " ghost pinged the following people:",
+                    colour=15062910)
+      embed.add_field(name="Channel", value=message.channel.mention)
+      specific_victims = ", ".join(["<@" + str(mention) + ">" for mention in message.raw_mentions])
+      if len(specific_victims):
+        embed.add_field(name="Specific Victims", value=specific_victims)
+
+      role_mentions = ", ".join(["<@&" + str(mention) + ">" for mention in message.raw_role_mentions])
+      if len(role_mentions):
+        embed.add_field(name="Role Mentions", value=role_mentions)
+
+      extra_notes = []
+      if "@everyone" in message.content:
+        extra_notes.append("- Mentions @everyone")
+      if "@here" in message.content:
+        extra_notes.append("- Mentions @here")
+      if deleter != "Unknown":
+        extra_notes.append("- Deleted by " + deleter)
+      else:
+        extra_notes.append("- Most likely self deleted")
+
+      if len(extra_notes):
+        embed.add_field(name="Extra Notes", value="\n".join(extra_notes))
+      
+      embed.add_field(name="Message Content", value=message.content, inline=False)
+      await channel.send(embed=embed)
+    if message.author.id == 876494772821430332 and deleter_id not in [738900809810575390, 876494772821430332]:
+      await message.guild.get_channel(847204787023118366).send(deleter + " deleted an ICC Bot message.")
+
+  snipes[message.channel.id].add(await SnipedMessage.create(
+      created_at=message.created_at,
+      deleted_at=datetime.datetime.now(),
+      author=message.author,
+      deleter=deleter,
+      content=message.content,
+      embeds=message.embeds,
+      attachments=message.attachments,
+      ghost_pinged=ghost_pinged))
 
 
 @bot.event
 async def on_message(message):
-  return
-  if message.author.guild_permissions.administrator and message.author.id != 738900809810575390: # admin
+  # cleaned = message.content.lower().strip(" !@#$%^&*();'\";:,.<>/?\\|[]{}-=_+")
+  # if cleaned == "rim naqwe" or cleaned == "rlm naqwe":
+  #   await message.delete()
+  #   return
+
+  # if message.author.id == 806722836437139506:
+  #   await message.reply("hi")
+  #   return
+
+  if isinstance(message.channel, DMChannel) or message.guild.id != 800120401107746846:  # has to be icc server
+    return
+  
+  if message.channel.id == 847210608042573854 and not message.author.guild_permissions.administrator:
+    await message.delete()
     return
 
-  if profane(message.content): # also check like embeds and stuff
+  if message.author.guild_permissions.administrator or message.author.id == 738900809810575390:  # admin
+    return
+
+  if profane(message.content):  # also check like embeds and stuff
     await message.delete()
     return
 
 
-  # to_check = []
-  # for attachment in message.attachments:
-  #   stuff = io.BytesIO(await attachment.read())
-  #   stuff.seek(0)
-  #   with open("attachment_cache/" + attachment.filename, "wb") as f:
-  #     shutil.copyfileobj(stuff, f, length=131072)
-  #   to_check.append("attachment_cache/" + attachment.filename)
-  #   for image in to_check:
-  #     img = cv2.imread(image)
-  #     if profane(pytesseract.image_to_string(img)): 
-  #       await message.delete()
-  #       message.channel.send(message.author.mention + " has sent a profane message.")
-  #       return
+@bot.event
+async def on_member_leave(member):
+  goodbye = await bot.fetch_channel(867910242132951040)
+  await goodbye.send(member.mention + " has left the server.")
 
 
+url_test = re.compile(
+    "^https?:\/\/docs\.google\.com\/document\/d\/[0-9a-zA-Z-]+\/edit(\?usp=sharing)?(#.*)?$"
+)
 
-  
-    
 
-
-url_test = re.compile("^https?:\/\/docs\.google\.com\/document\/d\/[0-9a-zA-Z-]+\/edit(\?usp=sharing)?(#.*)?$")
 @slash.slash(
     name="event",
     description="Create an event for the ICC.",
@@ -1382,26 +1555,24 @@ url_test = re.compile("^https?:\/\/docs\.google\.com\/document\/d\/[0-9a-zA-Z-]+
             required=True,
         )
     ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
-async def event(ctx: SlashContext, title, who, what, where, location, when, how, doc):
+    permissions=admin_perms)
+async def event(ctx: SlashContext, title, who, what, where, location, when,
+                how, doc):
   if not ctx.author.guild_permissions.administrator:
-    await ctx.send("You must be an admin to create events!",
-                  hidden=True)
-    return
-  
-  if not url_test.fullmatch(doc):
-    await ctx.send("Your document must be a link in the form of a Google Document!",
-                  hidden=True)
+    await ctx.send("You must be an admin to create events!", hidden=True)
     return
 
-  e = Embed(title=title, description=ctx.author.mention + " has created an event! Please RSVP (by clicking the green button at the bottom) as you will receive volunteer hours for your hard work as well as support the Irvine Coding Club.", colour=15062910)
+  if not url_test.fullmatch(doc):
+    await ctx.send(
+        "Your document must be a link in the form of a Google Document!",
+        hidden=True)
+    return
+
+  e = Embed(
+      title=title,
+      description=ctx.author.mention +
+      " has created an event! Please RSVP (by clicking the green button at the bottom) as you will receive volunteer hours for your hard work as well as support the Irvine Coding Club.",
+      colour=15062910)
   e.add_field(name="Who", value=who)
   e.add_field(name="What", value=what)
   e.add_field(name="Where", value=where)
@@ -1412,68 +1583,79 @@ async def event(ctx: SlashContext, title, who, what, where, location, when, how,
   e.add_field(name="Attendees", value="No attendees yet.")
 
   channel = await bot.fetch_channel(881704635226812426)
-  message = await channel.send(embed=e, components=[
-          create_actionrow(
-              create_button(style=ButtonStyle(3),
-                            label="RSVP",
-                            custom_id="event_rsvp"),
-              create_button(style=ButtonStyle(4),
-                            label="UnRSVP",
-                            custom_id="event_unrsvp"))
-      ])
+  message = await channel.send(embed=e,
+                               components=[
+                                   create_actionrow(
+                                       create_button(style=ButtonStyle(3),
+                                                     label="RSVP",
+                                                     custom_id="event_rsvp"),
+                                       create_button(style=ButtonStyle(4),
+                                                     label="UnRSVP",
+                                                     custom_id="event_unrsvp"))
+                               ])
 
-  await ctx.send(
-      embed=Embed(title="Success!",
-                  description="This event has been created."),
-      components=[
-          create_actionrow(
-              create_button(style=ButtonStyle(4),
-                            label="Remove Event",
-                            custom_id="event_remove-" + str(message.id)))
-      ],
-      hidden=True)
+  await ctx.send(embed=Embed(title="Success!",
+                             description="This event has been created."),
+                 components=[
+                     create_actionrow(
+                         create_button(style=ButtonStyle(4),
+                                       label="Remove Event",
+                                       custom_id="event_remove-" +
+                                       str(message.id)))
+                 ],
+                 hidden=True)
+
 
 @bot.event
 async def on_reaction_remove(reaction, member):
   message = reaction.message
   channel = message.guild.get_channel(847204787023118366)
-  embed=Embed(title="Reaction was removed.", description=member.mention + " removed a reaction.", colour=15062910)
+  embed = Embed(title="Reaction was removed.",
+                description=member.mention + " removed a reaction.",
+                colour=15062910)
   embed.add_field(name="Channel", value=message.channel.mention)
   embed.add_field(name="Message", value=message.jump_url)
   embed.add_field(name="Emoji", value=str(reaction))
   await channel.send(embed=embed)
 
-pages = ["**0. Introduction**\n\nPlease read the entirety of these Terms and Conditions thoroughly because it explains your rights and responsibilities while accessing the Irvine Coding Club Discord server. By accepting these Terms, **you agree to be bound by these Terms and held accountable for violating these terms**. The Irvine Coding Club may take measures to prevent future violations of the Terms by kicking or banning any member at any time. The Irvine Coding Club reserves the right to update these terms at any time.", "**1. Acceptable Use**\n\nTo:\n- Engage or promote anything illegal or otherwise violate applicable law, Threaten, harass, or violate the privacy rights of others, Harm users with malicious code or instructions, in attacks not limited to, viruses, malware, or trojan horses, Deceive, mislead, defraud, phish, or attempt to commit identity theft, Violate the privacy rights of others, Collect or harvest personally identifiable information without permission which includes, but is not limited to, account names and email addresses, Engage in any activity that interferes with or disrupts the services provided.\n- Engage or promote anything illegal or otherwise violate applicable law,\n- Threaten, harass, or violate the privacy rights of others,\n- Harm users with malicious code or instructions, in attacks not limited to, viruses, malware, or trojan horses,\n- Deceive, mislead, defraud, phish, or attempt to commit identity theft,\n- Violate the privacy rights of others,\n- Collect or harvest personally identifiable information without permission which includes, but is not limited to, account names and email addresses,\n- Engage in any activity that interferes with or disrupts the services provided.\n\nis prohibited on the Irvine Coding Club Discord server.\n\n**Note:** this is not an exhaustive list and any moderator may choose to add any rule whenever. You will still be required to follow any new updated rules.", "**2. Server Rules**\n\n1) Be respectful.  This is self explanatory. Don't be rude. This includes any discrimination of any kind -- including about coding skills. Avoid spam and all caps without reason, and try to be respectful. Please keep profanity to a minimum.\n2) Please use /verify and enter your real name and school when you join.\n3) Have fun!  It's a club! Code! Talk! Make friends! Collaborate!"]
 
-@slash.slash(
-    name="TOC",
-    description="Terms and Conditions for the ICC.",
-    guild_ids=test_guilds
-)
+pages = [
+    "**0. Introduction**\n\nPlease read the entirety of these Terms and Conditions thoroughly because it explains your rights and responsibilities while accessing the Irvine Coding Club Discord server. By accepting these Terms, **you agree to be bound by these Terms and held accountable for violating these terms**. The Irvine Coding Club may take measures to prevent future violations of the Terms by kicking or banning any member at any time. The Irvine Coding Club reserves the right to update these terms at any time.",
+    "**1. Acceptable Use**\n\nTo:\n- Engage or promote anything illegal or otherwise violate applicable law, Threaten, harass, or violate the privacy rights of others, Harm users with malicious code or instructions, in attacks not limited to, viruses, malware, or trojan horses, Deceive, mislead, defraud, phish, or attempt to commit identity theft, Violate the privacy rights of others, Collect or harvest personally identifiable information without permission which includes, but is not limited to, account names and email addresses, Engage in any activity that interferes with or disrupts the services provided.\n- Engage or promote anything illegal or otherwise violate applicable law,\n- Threaten, harass, or violate the privacy rights of others,\n- Harm users with malicious code or instructions, in attacks not limited to, viruses, malware, or trojan horses,\n- Deceive, mislead, defraud, phish, or attempt to commit identity theft,\n- Violate the privacy rights of others,\n- Collect or harvest personally identifiable information without permission which includes, but is not limited to, account names and email addresses,\n- Engage in any activity that interferes with or disrupts the services provided.\n\nis prohibited on the Irvine Coding Club Discord server.\n\n**Note:** this is not an exhaustive list and any moderator may choose to add any rule whenever. You will still be required to follow any new updated rules.",
+    "**2. Server Rules**\n\n1) Be respectful.  This is self explanatory. Don't be rude. This includes any discrimination of any kind -- including about coding skills. Avoid spam and all caps without reason, and try to be respectful. Please keep profanity to a minimum.\n2) Please use /verify and enter your real name and school when you join.\n3) Have fun!  It's a club! Code! Talk! Make friends! Collaborate!"
+]
+
+
+@slash.slash(name="TOC",
+             description="Terms and Conditions for the ICC.",
+             guild_ids=test_guilds)
 async def TOC(ctx: SlashContext):
-  e = Embed(
-        title="Page 0 / " + str(len(pages) - 1), 
-        description=pages[0],
-        colour=15062910)
-  await ctx.send("ICC Terms and Conditions", embed=e, components=[
-      create_actionrow(
-          create_button(style=ButtonStyle(2),
-                        label="Previous Page",
-                        custom_id="TOC_prev_page"),
-          create_button(style=ButtonStyle(2),
-                        label="Next Page",
-                        custom_id="TOC_next_page"),
-          create_button(style=ButtonStyle(3),
-                        label="Accept Terms and Conditions",
-                        custom_id="TOC_accept"))
-  ])
+  e = Embed(title="Page 0 / " + str(len(pages) - 1),
+            description=pages[0],
+            colour=15062910)
+  await ctx.send("ICC Terms and Conditions",
+                 embed=e,
+                 components=[
+                     create_actionrow(
+                         create_button(style=ButtonStyle(2),
+                                       label="Previous Page",
+                                       custom_id="TOC_prev_page"),
+                         create_button(style=ButtonStyle(2),
+                                       label="Next Page",
+                                       custom_id="TOC_next_page"),
+                         create_button(style=ButtonStyle(3),
+                                       label="Accept Terms and Conditions",
+                                       custom_id="TOC_accept"))
+                 ])
 
 
 @slash.component_callback()
 async def TOC_next_page(ctx: ComponentContext):
   page = int(ctx.origin_message.embeds[0].title[5:].split("/")[0][:-1]) + 1
   if page == len(pages):
-    await ctx.send(content="You are already at the last page and can not move forwards!", hidden=True)
+    await ctx.send(
+        content="You are already at the last page and can not move forwards!",
+        hidden=True)
     return
   content = pages[page]
 
@@ -1488,7 +1670,9 @@ async def TOC_next_page(ctx: ComponentContext):
 async def TOC_prev_page(ctx: ComponentContext):
   page = int(ctx.origin_message.embeds[0].title[5:].split("/")[0][:-1]) - 1
   if page == -1:
-    await ctx.send(content="You are already at the first page and can not move backwards!", hidden=True)
+    await ctx.send(
+        content="You are already at the first page and can not move backwards!",
+        hidden=True)
     return
   content = pages[page]
 
@@ -1503,41 +1687,34 @@ async def TOC_prev_page(ctx: ComponentContext):
 async def TOC_accept(ctx: ComponentContext):
   page = int(ctx.origin_message.embeds[0].title[5:].split("/")[0][:-1])
   if page != len(pages) - 1:
-    await ctx.send(content="Please read the entirety of the Terms and Conditions before agreeing! (It isn't long).", hidden=True)
+    await ctx.send(
+        content="Please read the entirety of the Terms and Conditions before agreeing! (It isn't long).",
+        hidden=True)
     return
-  
+
   await ctx.send("You have accepted the Terms and Conditions!")
   # accept TOC
 
   # perhaps include the ID of the message (from the icc-logs) in this component thing and move it way up
 
 
-@slash.slash(
-    name="form",
-    description="Create a form for the council to fill out.",
-    guild_ids=test_guilds,
-    options=[
-        create_option(
-            name="link",
-            description="Form link",
-            option_type=3,
-            required=True,
-        )
-    ],
-    permissions={
-      800120401107746846: [
-        create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-        create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-        create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-      ]
-    }
-)
+@slash.slash(name="form",
+             description="Create a form for the council to fill out.",
+             guild_ids=guilds,
+             options=[
+                 create_option(
+                     name="link",
+                     description="Form link",
+                     option_type=3,
+                     required=True,
+                 )
+             ],
+             permissions=admin_perms)
 async def form(ctx: SlashContext, link):
   if not ctx.author.guild_permissions.administrator:
-    await ctx.send("You must be an admin to create forms!",
-                  hidden=True)
+    await ctx.send("You must be an admin to create forms!", hidden=True)
     return
-  
+
   channel = None
   for _channel in ctx.guild.channels:
     if _channel.name == "council-alerts":
@@ -1548,41 +1725,57 @@ async def form(ctx: SlashContext, link):
         "Must be a channel named council-alerts in the server you are using this command! Please contact an admin if you believe this is a mistake!",
         hidden=True)
     return
-  
+
   e = Embed(
-    title="New Form Yay!",
-    description="Fill out [this form](" + link + ").\n\nIf you do not fill out this form, or lie and say that you have filled out this form without having actually having succeeded in your duty, punishments will be required. By reading this message, you agree to these terms. If you are except from completing this form, simply click the \"Completed\" button and be free from any worries plaguing your nightmares. *But if you are not exempt and have **not** filled out the form, beware what lies ahead of you."
+      title="New Form Yay!",
+      description="Fill out [this form](" + link +
+      ").\n\nIf you do not fill out this form, or lie and say that you have filled out this form without having actually having succeeded in your duty, punishments will be required. By reading this message, you agree to these terms. If you are except from completing this form, simply click the \"Completed\" button and be free from any worries plaguing your nightmares. *But if you are not exempt and have **not** filled out the form, beware what lies ahead of you."
   )
 
-  e.add_field(name="Link", value=link + " (since you can't find it from above)")
+  e.add_field(name="Link",
+              value=link + " (since you can't find it from above)")
 
   e.add_field(name="Completed", value="No one :00000")
   e.add_field(name="Uncompleted", value="@everyone")
-  
-  message = await channel.send(content="@everyone. Form requested by " + ctx.author.mention, embed=e, components=[
+
+  message = await channel.send(
+      content="@everyone. Form requested by " + ctx.author.mention,
+      embed=e,
+      components=[
           create_actionrow(
               create_button(style=ButtonStyle(3),
                             label="Completed",
-                            custom_id="completed_form"))
-  ])
-
-  await ctx.send(embed=Embed(title="Success!", description="Your form has been sent!"), 
-      components=[
-          create_actionrow(
+                            custom_id="completed_form"),
               create_button(style=ButtonStyle(4),
-                            label="Remove Form",
-                            custom_id="form_remove-" + str(message.id)))
-      ],
-  hidden=True)
+                            label="Ping Slackers",
+                            custom_id="ping_form")
+          )
+      ])
 
-  #)
-  # ping everyone
-  # add them to people who have finished once they press button
-  # ping person who created, once everyone has filled out
-  # (do this by doing a list of people who still need to be filled out, kind of like people who up voted then downvoted, the upvoted is still need to be filled out)
-  # can't say you have not finished once you have already pressed button
+  await ctx.send(embed=Embed(title="Success!",
+                             description="Your form has been sent!"),
+                 components=[
+                     create_actionrow(
+                         create_button(style=ButtonStyle(4),
+                                       label="Remove Form",
+                                       custom_id="form_remove-" +
+                                       str(message.id)))
+                 ],
+                 hidden=True)
 
 
+# @slash.slash(
+#     name="math",
+#     description="Receive a math problem.",
+#     guild_ids=test_guilds,
+#     permissions={
+#       800120401107746846: [
+#         create_permission(839941660942270464, SlashCommandPermissionType.ROLE, True)
+#       ]
+#     }
+# )
+# async def math(ctx: SlashContext):
+#   pass
 
 # @slash.slash(
 #     name="unrsvp",
@@ -1602,13 +1795,7 @@ async def form(ctx: SlashContext, link):
 #             required=True,
 #         )
 #     ],
-#     permissions={
-#       800120401107746846: [
-#         create_permission(800157008975364106, SlashCommandPermissionType.ROLE, True),
-#         create_permission(808208118144172042, SlashCommandPermissionType.ROLE, True),
-#         create_permission(816391279650275388, SlashCommandPermissionType.ROLE, True)
-#       ]
-#     }
+#     permissions=admin_perms
 # )
 # async def unrsvp(ctx: SlashContext, message, member):
 #   if not ctx.author.guild_permissions.administrator:
@@ -1616,7 +1803,6 @@ async def form(ctx: SlashContext, link):
 #                   hidden=True)
 #     return
 
-  
 #   message_id = message.split("/")[-1]
 #   if not message_id.isdigit():
 #     await ctx.send("Invalid message link or ID.",
@@ -1643,7 +1829,7 @@ async def form(ctx: SlashContext, link):
 #     await ctx.send("Member was not found in attendee list.",
 #                   hidden=True)
 #     return
-  
+
 #   rsvp = "- " + member.mention
 #   embed["fields"][index]["value"] = "\n".join(list(filter(lambda e: e != rsvp, embed["fields"][index]["value"].split("\n"))))
 #   if embed["fields"][index]["value"] == "":
@@ -1652,3 +1838,89 @@ async def form(ctx: SlashContext, link):
 
 #   await ctx.send("UnRSVPed " + member.display_name + " successfully!",
 #                   hidden=True)
+
+
+@slash.slash(
+    name="acsl",
+    description="Add yourself to the ACSL Interest List for the ICC (2021-2022). Learn more about ACSL at acsl.org",
+    guild_ids=guilds,
+    options=[
+        create_option(
+            name="name",
+            description="Invalid names will be rejected.",
+            option_type=3,
+            required=True,
+        ),
+        create_option(
+            name="division",
+            description="Division to sign up for in ACSL.",
+            option_type=3,
+            required=True,
+            choices=[
+                create_choice(name="Junior (Junior High School & Middle School)",
+                              value="junior"),
+                create_choice(name="Senior (High School Students Taking AP Computer Science)",
+                              value="senior")
+            ]
+        ),
+        create_option(
+            name="email",
+            description="Your email (will never be spammed).",
+            option_type=3,
+            required=True,
+        ),
+        create_option(
+            name="school",
+            description="Your school (which you currently attend).",
+            option_type=3,
+            required=True,
+        ),
+        create_option(
+            name="grade",
+            description="Your grade level in school.",
+            option_type=4,
+            required=True,
+        ),
+        create_option(
+            name="experience",
+            description="What experience do you have with ACSL or computer science in general? (optional)",
+            option_type=3,
+            required=False,
+        ),
+    ],
+)
+async def acsl(ctx: SlashContext,
+                 name,
+                 division,
+                 email,
+                 school,
+                 grade,
+                 experience="None"):
+  if False and any(list(map(lambda e: e.id == 896498783221866496, ctx.author.roles))):
+    await ctx.send("You've already signed up for ACSL!", hidden=True)
+    return
+  logs = None
+  for _channel in ctx.guild.channels:
+    if _channel.name == "icc-logs":
+      logs = _channel
+      break
+  if logs == None:
+    await ctx.send(
+        "Unexpected error! Please notify an admin.",
+        hidden=True)
+    return
+  try:
+    e = Embed(title="ACSL Interest List", colour=15062910)
+    e.add_field(name="User", value=ctx.author.mention)
+    e.add_field(name="Name", value=name)
+    e.add_field(name="Division", value=division.capitalize())
+    e.add_field(name="Email", value=email)
+    e.add_field(name="School", value=school)
+    e.add_field(name="Grade", value=grade)
+    await logs.send(embed=e)
+  except:
+    await logs.send([name, division.capitalize(), email, school, grade])
+  await ctx.author.add_roles(ctx.guild.get_role(896498783221866496), reason="ACSL interest list.")
+  await ctx.send(
+      "You now have access to the <#896499490364751944> channel!",
+      hidden=True)
