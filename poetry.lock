@@ -91,6 +91,18 @@ docs = ["sphinx (==3.0.3)", "sphinxcontrib-trio (==1.1.2)", "sphinxcontrib-websu
 voice = ["PyNaCl (>=1.3.0,<1.5)"]
 
 [[package]]
+name = "equation"
+version = "1.2.01"
+description = "General Equation Parser and Evaluator"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+VectorMaths = ["numpy"]
+SciConst = ["scipy (>=0.12.0)"]
+
+[[package]]
 name = "idna"
 version = "3.2"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -102,14 +114,6 @@ python-versions = ">=3.5"
 name = "multidict"
 version = "5.1.0"
 description = "multidict implementation"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[[package]]
-name = "schedule"
-version = "1.1.0"
-description = "Job scheduling for humans."
 category = "main"
 optional = false
 python-versions = ">=3.6"
@@ -145,7 +149,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "c94a286e0f2089926de0c60a8b75b416da5b2d9fde4f62e976734fb6bdf540ea"
+content-hash = "0167bba7b6741380c2ed553edbf023d7327b30505c8a4ebd6ac6abc09a5df515"
 
 [metadata.files]
 aiohttp = [
@@ -211,6 +215,12 @@ discord-py-slash-command = [
     {file = "discord.py-1.7.3-py3-none-any.whl", hash = "sha256:c6f64db136de0e18e090f6752ea68bdd4ab0a61b82dfe7acecefa22d6477bb0c"},
     {file = "discord.py-1.7.3.tar.gz", hash = "sha256:462cd0fe307aef8b29cbfa8dd613e548ae4b2cb581d46da9ac0d46fb6ea19408"},
 ]
+equation = [
+    {file = "Equation-1.2.01-py2.7.egg", hash = "sha256:8903160860fbef8b313a9d89ffff2cb4048a341f369b1c48086c4505eee7eb4d"},
+    {file = "Equation-1.2.01.tar.gz", hash = "sha256:c8a21dc47d6c748fd19b6485978cf8c42fe31c43db7f44789d95fb5e9752b81c"},
+    {file = "Equation-1.2.01.win32.exe", hash = "sha256:e066d131244e612e760ee0227a57e57285a55c35ae896fecc4e8cb847935ec61"},
+    {file = "Equation-1.2.01.zip", hash = "sha256:1e8d55e771ac18f33fcef5bdb126e4079fd42ce744ae915cd03760aab158260c"},
+]
 idna = [
     {file = "idna-3.2-py3-none-any.whl", hash = "sha256:14475042e284991034cb48e06f6851428fb14c4dc953acd9be9a5e95c7b6dd7a"},
     {file = "idna-3.2.tar.gz", hash = "sha256:467fbad99067910785144ce333826c71fb0e63a425657295239737f7ecd125f3"},
@@ -253,10 +263,6 @@ multidict = [
     {file = "multidict-5.1.0-cp39-cp39-win32.whl", hash = "sha256:fc13a9524bc18b6fb6e0dbec3533ba0496bbed167c56d0aabefd965584557d80"},
     {file = "multidict-5.1.0-cp39-cp39-win_amd64.whl", hash = "sha256:7df80d07818b385f3129180369079bd6934cf70469f99daaebfac89dca288359"},
     {file = "multidict-5.1.0.tar.gz", hash = "sha256:25b4e5f22d3a37ddf3effc0710ba692cfc792c2b9edfb9c05aefe823256e84d5"},
-]
-schedule = [
-    {file = "schedule-1.1.0-py2.py3-none-any.whl", hash = "sha256:617adce8b4bf38c360b781297d59918fbebfb2878f1671d189f4f4af5d0567a4"},
-    {file = "schedule-1.1.0.tar.gz", hash = "sha256:e6ca13585e62c810e13a08682e0a6a8ad245372e376ba2b8679294f377dfc8e4"},
 ]
 typing-extensions = [
     {file = "typing_extensions-3.10.0.0-py2-none-any.whl", hash = "sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497"},
