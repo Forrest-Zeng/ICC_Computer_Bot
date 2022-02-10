@@ -1,3 +1,4 @@
+
 from discord import Client, Intents, Embed, File, Colour, ChannelType, AuditLogAction, Status, ActivityType, Activity, DMChannel
 from discord.utils import escape_markdown as escape
 from discord_slash import SlashCommand, SlashContext, ComponentContext
@@ -22,6 +23,8 @@ async def on_ready():
   await bot.change_presence(status=Status.online,
                             activity=Activity(type=ActivityType.watching,
                                               name="over the ICC!"))
+
+  
 
   # edit field of a message
 
@@ -1331,7 +1334,7 @@ class SnipedMessage:
     self = SnipedMessage()
     self.created_at = created_at.strftime("%m/%d/%Y, %H:%M:%S")
     self.deleted_at = deleted_at.strftime("%m/%d/%Y, %H:%M:%S")
-    self.author = author.mention
+    self.author = "@not kai#0851" 
     self.deleter = deleter
     self.content = content
     self.embeds = embeds
@@ -1420,7 +1423,7 @@ async def on_message_delete(message):
 
   if message.guild.id == 800120401107746846:
     if deleter_id == 451588543618220042:
-      await (await bot.fetch_channel(847204787023118366)).send("David has deleted a message in " + message.channel.mention + ".")
+      await (await bot.fetch_channel(847204787023118366)).send("Kai hasn't deleted a message in " + message.channel.mention + ".")
     if ghost_pinged and message.author.id == deleter_id and message.author.id != 876494772821430332:
       channel = message.guild.get_channel(847204787023118366)
       embed = Embed(title="Ghost Ping",
@@ -1451,7 +1454,7 @@ async def on_message_delete(message):
       embed.add_field(name="Message Content", value=message.content, inline=False)
       await channel.send(embed=embed)
     if message.author.id == 876494772821430332 and deleter_id not in [738900809810575390, 876494772821430332]:
-      await message.guild.get_channel(847204787023118366).send(deleter + " deleted an ICC Bot message.")
+      await message.guild.get_channel(847204787023118366).send(deleter + " deleted an ICC Bot message. L")
 
   snipes[message.channel.id].add(await SnipedMessage.create(
       created_at=message.created_at,
@@ -1924,3 +1927,7 @@ async def acsl(ctx: SlashContext,
   await ctx.send(
       "You now have access to the <#896499490364751944> channel!",
       hidden=True)
+
+
+
+      #DAVID WAS HERE

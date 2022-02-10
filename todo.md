@@ -16,6 +16,8 @@
   - when trying to accept an application, check if accepted TOC, and if not, do 
   ```python
   await ctx.send("The user you are trying to accept has not yet accepted the Terms and Conditions. Please wait to verify until they do.")
+  ur mom
+  david good
   ```
 
 # do /voting-form

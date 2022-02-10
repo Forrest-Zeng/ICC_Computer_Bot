@@ -7,3 +7,5 @@ async def on_ready():
     
 
 bot.run(os.environ["DISCORD_TOKEN"])
+
+#what do you want

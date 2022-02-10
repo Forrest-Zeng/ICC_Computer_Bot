@@ -2,7 +2,7 @@
 name = "icccomputerbot"
 version = "0.1.0"
 description = ""
-authors = ["alrond <<>>"]
+authors = [" <<>>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -10,6 +10,7 @@ discord-py-slash-command = "^3.0.1"
 discord = "^1.7.3"
 yapf = "^0.31.0"
 Equation = "^1.2.1"
+Flask = "^2.0.2"
 
 [tool.poetry.dev-dependencies]
 
